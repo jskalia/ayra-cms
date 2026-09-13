@@ -1,10 +1,17 @@
 import type { CollectionConfig } from 'payload'
 
+import { rebuildSitesAfterChange, rebuildSitesAfterDelete } from '../hooks/rebuildSites'
+
 export const Categories: CollectionConfig = {
   slug: 'categories',
   admin: {
     useAsTitle: 'title',
   },
+  hooks: {
+    afterChange: [rebuildSitesAfterChange],
+    afterDelete: [rebuildSitesAfterDelete],
+  },
+
   access: {
     read: () => true,
   },

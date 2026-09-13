@@ -1,0 +1,25 @@
+name: Banned vocabulary
+
+# Blocks newly added lines containing retired terms (estate rule:
+# plugins = agents = AI employees; "Ayra Platform" umbrella and "SuperApp"
+# are retired everywhere — see _sdd/AGENTS.md).
+
+on:
+  pull_request
+
+jobs:
+  vocab:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Check added lines for banned vocabulary
+        run: |
+          BASE="${{ github.event.pull_request.base.sha }}"
+          ADDED=$(git diff "$BASE" HEAD --unified=0 | grep '^+' | grep -v '^+++' || true)
+          PATTERN='Ayra Platform|SuperApp|Super App'
+          if printf '%s' "$ADDED" | grep -Ein "$PATTERN"; then
+            echo "::error::Banned vocabulary found in added lines — these terms are retired (use plugins vocabulary; see _sdd/AGENTS.md)"
+            exit 1
+          fi

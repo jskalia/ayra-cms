@@ -1,10 +1,17 @@
 import type { CollectionConfig } from 'payload'
 
+import { rebuildSitesAfterChange, rebuildSitesAfterDelete } from '../hooks/rebuildSites'
+
 export const Authors: CollectionConfig = {
   slug: 'authors',
   admin: {
     useAsTitle: 'name',
   },
+  hooks: {
+    afterChange: [rebuildSitesAfterChange],
+    afterDelete: [rebuildSitesAfterDelete],
+  },
+
   access: {
     read: () => true,
   },

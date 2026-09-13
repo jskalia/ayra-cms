@@ -1,11 +1,18 @@
 import type { CollectionConfig } from 'payload'
 
+import { rebuildSitesAfterChange, rebuildSitesAfterDelete } from '../hooks/rebuildSites'
+
 export const Posts: CollectionConfig = {
   slug: 'posts',
   admin: {
     useAsTitle: 'title',
     defaultColumns: ['title', '_status', 'publishedAt', 'categories'],
   },
+  hooks: {
+    afterChange: [rebuildSitesAfterChange],
+    afterDelete: [rebuildSitesAfterDelete],
+  },
+
   access: {
     // Public visitors may read published posts only; authenticated users see everything.
     read: ({ req: { user } }) => (user ? true : { _status: { equals: 'published' } }),

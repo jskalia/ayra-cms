@@ -30,6 +30,7 @@ import { Media } from './src/collections/Media'
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
 
+
 /** Neon/Vercel: prefer direct (unpooled) URL for Payload; fall back through the template vars. */
 function databaseConnectionString(): string {
   return (

@@ -1,5 +1,7 @@
 import type { CollectionConfig } from 'payload'
 
+import { rebuildSitesAfterChange, rebuildSitesAfterDelete } from '../hooks/rebuildSites'
+
 export const Media: CollectionConfig = {
   slug: 'media',
   upload: {
@@ -10,6 +12,11 @@ export const Media: CollectionConfig = {
       { name: 'og', width: 1200, height: 630, position: 'centre' },
     ],
   },
+  hooks: {
+    afterChange: [rebuildSitesAfterChange],
+    afterDelete: [rebuildSitesAfterDelete],
+  },
+
   access: {
     read: () => true,
   },
