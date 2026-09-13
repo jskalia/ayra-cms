@@ -1,6 +1,7 @@
 import type { CollectionConfig } from 'payload'
 
 import { rebuildSitesAfterChange, rebuildSitesAfterDelete } from '../hooks/rebuildSites'
+import { bannedVocabularyBeforeChange } from '../hooks/bannedVocabulary'
 
 export const Categories: CollectionConfig = {
   slug: 'categories',
@@ -8,6 +9,7 @@ export const Categories: CollectionConfig = {
     useAsTitle: 'title',
   },
   hooks: {
+    beforeChange: [bannedVocabularyBeforeChange],
     afterChange: [rebuildSitesAfterChange],
     afterDelete: [rebuildSitesAfterDelete],
   },
