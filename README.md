@@ -2,8 +2,9 @@
 
 The **Payload CMS** application for the AyraAgent web program — one content backend serving
 both sites headlessly ([ayraagentai-web](../ayraagentai-web/) · [heyayraai-web](../heyayraai-web/)).
-Admin panel at **`/admin`** on both apex domains via site rewrites; REST at **`/cms-api`**
-(namespaced to avoid colliding with the sites' future `/api` routes).
+Admin panel at **`cms.ayraagent.ai/admin`** (single origin — per-domain proxies were dropped
+after the 2026-09-13 architecture review); REST at **`/cms-api`** (namespaced to avoid
+colliding with the sites' future `/api` routes; site builds call it directly).
 
 - **Spec source of truth:**
   [tech_stack.md](../../../_sdd/_about/About%20Ayra%20Agent/tech_stack.md) (CMS section +
