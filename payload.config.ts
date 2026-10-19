@@ -18,7 +18,7 @@ import {
 } from '@payloadcms/richtext-lexical'
 import { postgresAdapter } from '@payloadcms/db-postgres'
 import { vercelBlobStorage } from '@payloadcms/storage-vercel-blob'
-import { mcpPlugin } from '@payloadcms/plugin-mcp'
+import { multiTenantPlugin } from '@payloadcms/plugin-multi-tenant'
 import sharp from 'sharp'
 
 import { Users } from './src/collections/Users'
@@ -26,6 +26,9 @@ import { Posts } from './src/collections/Posts'
 import { Categories } from './src/collections/Categories'
 import { Authors } from './src/collections/Authors'
 import { Media } from './src/collections/Media'
+import { Tenants } from './src/collections/Tenants'
+import { fieldHasRole } from './src/access/roles'
+import type { User } from './payload-types'
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
@@ -138,33 +141,29 @@ export default buildConfig({
         media: true,
       },
     }),
-    ...(process.env.PAYLOAD_MCP_ENABLED === '1'
-      ? [
-          mcpPlugin({
-            collections: {
-              posts: {
-                description: 'Blog posts and articles',
-                enabled: { find: true, create: true, update: true },
-              },
-              categories: {
-                description: 'Post categories',
-                enabled: { find: true, create: true, update: true },
-              },
-              authors: {
-                description: 'Post authors',
-                enabled: { find: true, create: true, update: true },
-              },
-              media: {
-                description: 'Media library',
-                enabled: { find: true, create: true },
-              },
-            },
-          }),
-        ]
-      : []),
+    // One tenant per website (WebsiteOps plan W5.2). Signed-in users other than admins only
+    // ever see the tenants listed on their account. Content collections also refuse anonymous
+    // reads themselves (src/access/roles.ts), because the plugin does not scope anonymous requests.
+    // The MCP plugin was removed (decision D9): content enters only through the _ops sync.
+    multiTenantPlugin<{ user: User }>({
+      tenantsSlug: 'tenants',
+      collections: {
+        posts: {},
+        categories: {},
+        authors: {},
+        media: {},
+      },
+      userHasAccessToAllTenants: (user) => user?.role === 'admin',
+      tenantsArrayField: {
+        includeDefaultField: true,
+        // Only an admin assigns tenants to an account.
+        arrayFieldAccess: { create: fieldHasRole('admin'), update: fieldHasRole('admin') },
+        tenantFieldAccess: { create: fieldHasRole('admin'), update: fieldHasRole('admin') },
+      },
+    }),
   ],
 
-  collections: [Users, Posts, Categories, Authors, Media],
+  collections: [Users, Tenants, Posts, Categories, Authors, Media],
 
   secret: requiredSecret(),
 

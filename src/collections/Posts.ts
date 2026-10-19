@@ -1,5 +1,7 @@
 import type { CollectionConfig } from 'payload'
 
+import { readContent, writeContent } from '../access/roles'
+
 import { rebuildSitesAfterChange, rebuildSitesAfterDelete } from '../hooks/rebuildSites'
 import { bannedVocabularyBeforeChange } from '../hooks/bannedVocabulary'
 
@@ -15,9 +17,13 @@ export const Posts: CollectionConfig = {
     afterDelete: [rebuildSitesAfterDelete],
   },
 
+  // A slug is unique within a site (tenant), not across all sites.
+  indexes: [{ fields: ['tenant', 'slug'], unique: true }],
   access: {
-    // Public visitors may read published posts only; authenticated users see everything.
-    read: ({ req: { user } }) => (user ? true : { _status: { equals: 'published' } }),
+    read: readContent({ drafts: true }),
+    create: writeContent,
+    update: writeContent,
+    delete: writeContent,
   },
   versions: {
     drafts: true,
@@ -38,7 +44,6 @@ export const Posts: CollectionConfig = {
               name: 'slug',
               type: 'text',
               required: true,
-              unique: true,
               index: true,
               admin: {
                 position: 'sidebar',

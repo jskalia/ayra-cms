@@ -68,6 +68,7 @@ export interface Config {
   blocks: {};
   collections: {
     users: User;
+    tenants: Tenant;
     posts: Post;
     categories: Category;
     authors: Author;
@@ -80,6 +81,7 @@ export interface Config {
   collectionsJoins: {};
   collectionsSelect: {
     users: UsersSelect<false> | UsersSelect<true>;
+    tenants: TenantsSelect<false> | TenantsSelect<true>;
     posts: PostsSelect<false> | PostsSelect<true>;
     categories: CategoriesSelect<false> | CategoriesSelect<true>;
     authors: AuthorsSelect<false> | AuthorsSelect<true>;
@@ -130,9 +132,19 @@ export interface UserAuthOperations {
 export interface User {
   id: number;
   name: string;
-  role: 'admin' | 'editor';
+  role: 'admin' | 'editor' | 'site-reader' | 'sync';
+  tenants?:
+    | {
+        tenant: number | Tenant;
+        id?: string | null;
+      }[]
+    | null;
   updatedAt: string;
   createdAt: string;
+  enableAPIKey?: boolean | null;
+  apiKey?: string | null;
+  apiKeyIndex?: string | null;
+  hasAPIKey?: boolean | null;
   email: string;
   resetPasswordToken?: string | null;
   resetPasswordExpiration?: string | null;
@@ -153,10 +165,39 @@ export interface User {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "tenants".
+ */
+export interface Tenant {
+  id: number;
+  name: string;
+  /**
+   * Stable id used by site.yaml (cms.tenant) and the sync, e.g. savelifeai.
+   */
+  slug: string;
+  /**
+   * Domains this site serves, e.g. savelife.ai.
+   */
+  domains?:
+    | {
+        domain: string;
+        id?: string | null;
+      }[]
+    | null;
+  status: 'planned' | 'active' | 'retired';
+  /**
+   * Name (not value) of the env var holding this site’s Vercel deploy hook, used to start a preview after a sync.
+   */
+  deployHookEnv?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "posts".
  */
 export interface Post {
   id: number;
+  tenant?: (number | null) | Tenant;
   title: string;
   /**
    * URL segment, e.g. /blog/why-agents-need-context
@@ -199,6 +240,7 @@ export interface Post {
  */
 export interface Category {
   id: number;
+  tenant?: (number | null) | Tenant;
   title: string;
   slug: string;
   description?: string | null;
@@ -211,6 +253,7 @@ export interface Category {
  */
 export interface Author {
   id: number;
+  tenant?: (number | null) | Tenant;
   name: string;
   /**
    * Role or byline title, e.g. "Founder, AyraAgent".
@@ -227,6 +270,7 @@ export interface Author {
  */
 export interface Media {
   id: number;
+  tenant?: (number | null) | Tenant;
   /**
    * Describe the image for screen readers and SEO.
    */
@@ -300,6 +344,10 @@ export interface PayloadLockedDocument {
         value: number | User;
       } | null)
     | ({
+        relationTo: 'tenants';
+        value: number | Tenant;
+      } | null)
+    | ({
         relationTo: 'posts';
         value: number | Post;
       } | null)
@@ -364,8 +412,18 @@ export interface PayloadMigration {
 export interface UsersSelect<T extends boolean = true> {
   name?: T;
   role?: T;
+  tenants?:
+    | T
+    | {
+        tenant?: T;
+        id?: T;
+      };
   updatedAt?: T;
   createdAt?: T;
+  enableAPIKey?: T;
+  apiKey?: T;
+  apiKeyIndex?: T;
+  hasAPIKey?: T;
   email?: T;
   resetPasswordToken?: T;
   resetPasswordExpiration?: T;
@@ -384,9 +442,28 @@ export interface UsersSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "tenants_select".
+ */
+export interface TenantsSelect<T extends boolean = true> {
+  name?: T;
+  slug?: T;
+  domains?:
+    | T
+    | {
+        domain?: T;
+        id?: T;
+      };
+  status?: T;
+  deployHookEnv?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "posts_select".
  */
 export interface PostsSelect<T extends boolean = true> {
+  tenant?: T;
   title?: T;
   slug?: T;
   excerpt?: T;
@@ -405,6 +482,7 @@ export interface PostsSelect<T extends boolean = true> {
  * via the `definition` "categories_select".
  */
 export interface CategoriesSelect<T extends boolean = true> {
+  tenant?: T;
   title?: T;
   slug?: T;
   description?: T;
@@ -416,6 +494,7 @@ export interface CategoriesSelect<T extends boolean = true> {
  * via the `definition` "authors_select".
  */
 export interface AuthorsSelect<T extends boolean = true> {
+  tenant?: T;
   name?: T;
   title?: T;
   photo?: T;
@@ -428,6 +507,7 @@ export interface AuthorsSelect<T extends boolean = true> {
  * via the `definition` "media_select".
  */
 export interface MediaSelect<T extends boolean = true> {
+  tenant?: T;
   alt?: T;
   prefix?: T;
   _objectKey?: T;

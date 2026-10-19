@@ -1,6 +1,7 @@
 import * as migration_20261019_140655_baseline from './20261019_140655_baseline';
 import * as migration_20261019_201653_payload_3_91_upgrade from './20261019_201653_payload_3_91_upgrade';
 import * as migration_20261019_203808_blob_storage_fields from './20261019_203808_blob_storage_fields';
+import * as migration_20261019_204600_tenants_roles_api_keys from './20261019_204600_tenants_roles_api_keys';
 
 export const migrations = [
   {
@@ -16,6 +17,11 @@ export const migrations = [
   {
     up: migration_20261019_203808_blob_storage_fields.up,
     down: migration_20261019_203808_blob_storage_fields.down,
-    name: '20261019_203808_blob_storage_fields'
+    name: '20261019_203808_blob_storage_fields',
+  },
+  {
+    up: migration_20261019_204600_tenants_roles_api_keys.up,
+    down: migration_20261019_204600_tenants_roles_api_keys.down,
+    name: '20261019_204600_tenants_roles_api_keys'
   },
 ];

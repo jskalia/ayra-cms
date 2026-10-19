@@ -33,3 +33,6 @@ CLAUDE.md
 .idea/
 .vscode/
 .vercel
+
+# local uploads (Blob is used in production)
+/media/

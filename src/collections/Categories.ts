@@ -1,5 +1,7 @@
 import type { CollectionConfig } from 'payload'
 
+import { readContent, writeContent } from '../access/roles'
+
 import { rebuildSitesAfterChange, rebuildSitesAfterDelete } from '../hooks/rebuildSites'
 import { bannedVocabularyBeforeChange } from '../hooks/bannedVocabulary'
 
@@ -14,8 +16,13 @@ export const Categories: CollectionConfig = {
     afterDelete: [rebuildSitesAfterDelete],
   },
 
+  // A slug is unique within a site (tenant), not across all sites.
+  indexes: [{ fields: ['tenant', 'slug'], unique: true }],
   access: {
-    read: () => true,
+    read: readContent({ drafts: false }),
+    create: writeContent,
+    update: writeContent,
+    delete: writeContent,
   },
   fields: [
     {
@@ -27,7 +34,6 @@ export const Categories: CollectionConfig = {
       name: 'slug',
       type: 'text',
       required: true,
-      unique: true,
       index: true,
     },
     {

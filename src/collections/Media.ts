@@ -1,5 +1,7 @@
 import type { CollectionConfig } from 'payload'
 
+import { readContent, writeContent } from '../access/roles'
+
 import { rebuildSitesAfterChange, rebuildSitesAfterDelete } from '../hooks/rebuildSites'
 
 export const Media: CollectionConfig = {
@@ -18,7 +20,10 @@ export const Media: CollectionConfig = {
   },
 
   access: {
-    read: () => true,
+    read: readContent({ drafts: false }),
+    create: writeContent,
+    update: writeContent,
+    delete: writeContent,
   },
   fields: [
     {
