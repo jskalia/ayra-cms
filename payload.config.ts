@@ -27,6 +27,10 @@ import { Categories } from './src/collections/Categories'
 import { Authors } from './src/collections/Authors'
 import { Media } from './src/collections/Media'
 import { Tenants } from './src/collections/Tenants'
+import { SiteSettings } from './src/collections/SiteSettings'
+import { Products } from './src/collections/Products'
+import { Claims } from './src/collections/Claims'
+import { Atoms } from './src/collections/Atoms'
 import { bootstrapAdmin } from './src/lib/bootstrapAdmin'
 import { fieldHasRole } from './src/access/roles'
 import type { User } from './payload-types'
@@ -149,6 +153,10 @@ export default buildConfig({
     multiTenantPlugin<{ user: User }>({
       tenantsSlug: 'tenants',
       collections: {
+        'site-settings': { isGlobal: true },
+        products: {},
+        claims: {},
+        atoms: {},
         posts: {},
         categories: {},
         authors: {},
@@ -164,7 +172,7 @@ export default buildConfig({
     }),
   ],
 
-  collections: [Users, Tenants, Posts, Categories, Authors, Media],
+  collections: [Users, Tenants, SiteSettings, Products, Claims, Atoms, Posts, Categories, Authors, Media],
 
   secret: requiredSecret(),
 

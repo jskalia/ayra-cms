@@ -69,6 +69,10 @@ export interface Config {
   collections: {
     users: User;
     tenants: Tenant;
+    'site-settings': SiteSetting;
+    products: Product;
+    claims: Claim;
+    atoms: Atom;
     posts: Post;
     categories: Category;
     authors: Author;
@@ -81,6 +85,10 @@ export interface Config {
   collectionsSelect: {
     users: UsersSelect<false> | UsersSelect<true>;
     tenants: TenantsSelect<false> | TenantsSelect<true>;
+    'site-settings': SiteSettingsSelect<false> | SiteSettingsSelect<true>;
+    products: ProductsSelect<false> | ProductsSelect<true>;
+    claims: ClaimsSelect<false> | ClaimsSelect<true>;
+    atoms: AtomsSelect<false> | AtomsSelect<true>;
     posts: PostsSelect<false> | PostsSelect<true>;
     categories: CategoriesSelect<false> | CategoriesSelect<true>;
     authors: AuthorsSelect<false> | AuthorsSelect<true>;
@@ -190,6 +198,387 @@ export interface Tenant {
   createdAt: string;
 }
 /**
+ * One per site, from its site.yaml.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "site-settings".
+ */
+export interface SiteSetting {
+  id: number;
+  tenant?: (number | null) | Tenant;
+  /**
+   * The record's id in _ops (site:…). Unique within a site.
+   */
+  recordId: string;
+  org: string;
+  brand?: string | null;
+  /**
+   * live only after R9, set by a person; drives the preview banner.
+   */
+  status: 'draft' | 'preview' | 'live';
+  look?: string | null;
+  domains?: {
+    primary?: string | null;
+    www?: ('redirect-to-apex' | 'serve') | null;
+    redirects?:
+      | {
+          domain: string;
+          rule: 'keep-path' | 'to-path';
+          target?: string | null;
+          keepServed?: string[] | null;
+          id?: string | null;
+        }[]
+      | null;
+  };
+  /**
+   * product ids whose releases feed What’s New.
+   */
+  releaseSources?: string[] | null;
+  kit?: {
+    path?: string | null;
+    section?: string | null;
+    systemId?: string | null;
+    version?: string | null;
+    approved?: boolean | null;
+  };
+  /**
+   * site.yaml nav (Platform · Solutions · Products · Proof · Resources).
+   */
+  nav?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  /**
+   * site.yaml nav_cta.
+   */
+  navCta?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  /**
+   * site.yaml footer.
+   */
+  footer?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  legalSet?:
+    | {
+        type: string;
+        page?: string | null;
+        version?: string | null;
+        counsel?: ('draft' | 'approved') | null;
+        generatedFrom?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  forms?:
+    | {
+        formId: string;
+        purpose?: ('contact' | 'demo' | 'newsletter' | 'whitepaper' | 'investor-signup' | 'trust-signup') | null;
+        inbox?: string | null;
+        inboxOwner?: string | null;
+        slaHours?: number | null;
+        confirmationEmail?: boolean | null;
+        sendAdapter?: string | null;
+        spam?: string[] | null;
+        noticeAtCollection?: string | null;
+        asksHealthInformation?: boolean | null;
+        id?: string | null;
+      }[]
+    | null;
+  channels?:
+    | {
+        channelId: string;
+        url?: string | null;
+        owner?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  consent?: {
+    register?: string | null;
+    notice?: string | null;
+    /**
+     * e.g. {us: opt-out, gpc: honoured, eu_uk: opt-in}
+     */
+    defaults?:
+      | {
+          [k: string]: unknown;
+        }
+      | unknown[]
+      | string
+      | number
+      | boolean
+      | null;
+    policyVersion?: string | null;
+  };
+  /**
+   * Every UI string, keyed by id (no copy in code, G-SITE-6).
+   */
+  ui?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  /**
+   * Enabled modules (investor portal, trust center, decks, changelog, podcast).
+   */
+  modules?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  retiring?: string[] | null;
+  /**
+   * Positions (internal).
+   */
+  owners?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  /**
+   * Approvers by gate (internal).
+   */
+  approvers?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  /**
+   * R0…R10 state (internal).
+   */
+  redesign?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  /**
+   * Written by the _ops sync.
+   */
+  sync?: {
+    /**
+     * Path of the source record in _ops.
+     */
+    sourcePath?: string | null;
+    sourceSha256?: string | null;
+    /**
+     * Id of the sync receipt that wrote this version.
+     */
+    receipt?: string | null;
+    syncedAt?: string | null;
+  };
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "products".
+ */
+export interface Product {
+  id: number;
+  tenant?: (number | null) | Tenant;
+  /**
+   * The record's id in _ops (product:…). Unique within a site.
+   */
+  recordId: string;
+  name: string;
+  /**
+   * Only released products reach a website.
+   */
+  released: boolean;
+  /**
+   * The status field of product.md, as written there.
+   */
+  status?: string | null;
+  /**
+   * The rest of product.md front matter, as synced.
+   */
+  record?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  /**
+   * Written by the _ops sync.
+   */
+  sync?: {
+    /**
+     * Path of the source record in _ops.
+     */
+    sourcePath?: string | null;
+    sourceSha256?: string | null;
+    /**
+     * Id of the sync receipt that wrote this version.
+     */
+    receipt?: string | null;
+    syncedAt?: string | null;
+  };
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "claims".
+ */
+export interface Claim {
+  id: number;
+  tenant?: (number | null) | Tenant;
+  /**
+   * The record's id in _ops (claim:…). Unique within a site.
+   */
+  recordId: string;
+  /**
+   * The claims.json file’s entity.
+   */
+  entity?: string | null;
+  text: string;
+  source: {
+    path: string;
+    lineOrSection: string;
+    pinnedDate: string;
+    commit?: string | null;
+  };
+  sha256: string;
+  quote: string;
+  /**
+   * Websites only ever see public records (G-SITE-7).
+   */
+  visibility: 'public' | 'internal' | 'investor-only';
+  visibilityNote?: string | null;
+  status: 'active' | 'deprecated' | 'retired';
+  regulated: boolean;
+  kNumber?: string | null;
+  platformVsModule?: ('platform' | 'module' | 'n/a') | null;
+  product?: string | null;
+  /**
+   * Signed by a person; never "FDA approved" (S-13).
+   */
+  fdaView?: {
+    signedBy?: string | null;
+    signedAt?: string | null;
+  };
+  approvedBy: string;
+  approvedAt: string;
+  supersededBy?: string | null;
+  note?: string | null;
+  /**
+   * Written by the _ops sync.
+   */
+  sync?: {
+    /**
+     * Path of the source record in _ops.
+     */
+    sourcePath?: string | null;
+    sourceSha256?: string | null;
+    /**
+     * Id of the sync receipt that wrote this version.
+     */
+    receipt?: string | null;
+    syncedAt?: string | null;
+  };
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "atoms".
+ */
+export interface Atom {
+  id: number;
+  tenant?: (number | null) | Tenant;
+  /**
+   * The record's id in _ops (atom:…). Unique within a site.
+   */
+  recordId: string;
+  version?: number | null;
+  kind?: ('diagram' | 'card' | 'platform_map' | 'workflow' | 'table' | 'faq' | 'metric' | 'quote') | null;
+  recipe?: ('R1' | 'R2' | 'R3' | 'R4' | 'R5' | 'R6' | 'R7' | 'R8' | 'R9' | 'R10') | null;
+  title?: string | null;
+  /**
+   * claim:<id> references this atom rests on.
+   */
+  claims?: string[] | null;
+  /**
+   * asset:<org>/<kind>/<id>@<v> references.
+   */
+  assets?: string[] | null;
+  /**
+   * Websites only ever see public records (G-SITE-7).
+   */
+  visibility: 'public' | 'internal' | 'investor-only';
+  visibilityNote?: string | null;
+  status: 'active' | 'deprecated' | 'retired';
+  /**
+   * Kind-specific fields from atoms.json (nodes, edges, steps, rows, items, …).
+   */
+  shape?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  /**
+   * Written by the _ops sync.
+   */
+  sync?: {
+    /**
+     * Path of the source record in _ops.
+     */
+    sourcePath?: string | null;
+    sourceSha256?: string | null;
+    /**
+     * Id of the sync receipt that wrote this version.
+     */
+    receipt?: string | null;
+    syncedAt?: string | null;
+  };
+  updatedAt: string;
+  createdAt: string;
+}
+/**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "posts".
  */
@@ -270,9 +659,55 @@ export interface Media {
   id: number;
   tenant?: (number | null) | Tenant;
   /**
+   * The record's id in _ops (asset:…). Unique within a site.
+   */
+  recordId: string;
+  kind:
+    | 'og'
+    | 'square'
+    | 'portrait'
+    | 'story'
+    | 'email'
+    | 'slide-16x9'
+    | 'section'
+    | 'screen'
+    | 'diagram'
+    | 'logo'
+    | 'photo'
+    | 'video';
+  /**
+   * Approved in DesignOps; only approved assets reach a website.
+   */
+  status: 'draft' | 'approved' | 'retired';
+  sha256?: string | null;
+  /**
+   * Licence of the image (web-product-images).
+   */
+  licence?: string | null;
+  attribution?: string | null;
+  /**
+   * Consent record for any person shown.
+   */
+  consent?: string | null;
+  /**
    * Describe the image for screen readers and SEO.
    */
   alt: string;
+  /**
+   * Written by the _ops sync.
+   */
+  sync?: {
+    /**
+     * Path of the source record in _ops.
+     */
+    sourcePath?: string | null;
+    sourceSha256?: string | null;
+    /**
+     * Id of the sync receipt that wrote this version.
+     */
+    receipt?: string | null;
+    syncedAt?: string | null;
+  };
   prefix?: string | null;
   _objectKey?: string | null;
   updatedAt: string;
@@ -419,6 +854,200 @@ export interface TenantsSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "site-settings_select".
+ */
+export interface SiteSettingsSelect<T extends boolean = true> {
+  tenant?: T;
+  recordId?: T;
+  org?: T;
+  brand?: T;
+  status?: T;
+  look?: T;
+  domains?:
+    | T
+    | {
+        primary?: T;
+        www?: T;
+        redirects?:
+          | T
+          | {
+              domain?: T;
+              rule?: T;
+              target?: T;
+              keepServed?: T;
+              id?: T;
+            };
+      };
+  releaseSources?: T;
+  kit?:
+    | T
+    | {
+        path?: T;
+        section?: T;
+        systemId?: T;
+        version?: T;
+        approved?: T;
+      };
+  nav?: T;
+  navCta?: T;
+  footer?: T;
+  legalSet?:
+    | T
+    | {
+        type?: T;
+        page?: T;
+        version?: T;
+        counsel?: T;
+        generatedFrom?: T;
+        id?: T;
+      };
+  forms?:
+    | T
+    | {
+        formId?: T;
+        purpose?: T;
+        inbox?: T;
+        inboxOwner?: T;
+        slaHours?: T;
+        confirmationEmail?: T;
+        sendAdapter?: T;
+        spam?: T;
+        noticeAtCollection?: T;
+        asksHealthInformation?: T;
+        id?: T;
+      };
+  channels?:
+    | T
+    | {
+        channelId?: T;
+        url?: T;
+        owner?: T;
+        id?: T;
+      };
+  consent?:
+    | T
+    | {
+        register?: T;
+        notice?: T;
+        defaults?: T;
+        policyVersion?: T;
+      };
+  ui?: T;
+  modules?: T;
+  retiring?: T;
+  owners?: T;
+  approvers?: T;
+  redesign?: T;
+  sync?:
+    | T
+    | {
+        sourcePath?: T;
+        sourceSha256?: T;
+        receipt?: T;
+        syncedAt?: T;
+      };
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "products_select".
+ */
+export interface ProductsSelect<T extends boolean = true> {
+  tenant?: T;
+  recordId?: T;
+  name?: T;
+  released?: T;
+  status?: T;
+  record?: T;
+  sync?:
+    | T
+    | {
+        sourcePath?: T;
+        sourceSha256?: T;
+        receipt?: T;
+        syncedAt?: T;
+      };
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "claims_select".
+ */
+export interface ClaimsSelect<T extends boolean = true> {
+  tenant?: T;
+  recordId?: T;
+  entity?: T;
+  text?: T;
+  source?:
+    | T
+    | {
+        path?: T;
+        lineOrSection?: T;
+        pinnedDate?: T;
+        commit?: T;
+      };
+  sha256?: T;
+  quote?: T;
+  visibility?: T;
+  visibilityNote?: T;
+  status?: T;
+  regulated?: T;
+  kNumber?: T;
+  platformVsModule?: T;
+  product?: T;
+  fdaView?:
+    | T
+    | {
+        signedBy?: T;
+        signedAt?: T;
+      };
+  approvedBy?: T;
+  approvedAt?: T;
+  supersededBy?: T;
+  note?: T;
+  sync?:
+    | T
+    | {
+        sourcePath?: T;
+        sourceSha256?: T;
+        receipt?: T;
+        syncedAt?: T;
+      };
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "atoms_select".
+ */
+export interface AtomsSelect<T extends boolean = true> {
+  tenant?: T;
+  recordId?: T;
+  version?: T;
+  kind?: T;
+  recipe?: T;
+  title?: T;
+  claims?: T;
+  assets?: T;
+  visibility?: T;
+  visibilityNote?: T;
+  status?: T;
+  shape?: T;
+  sync?:
+    | T
+    | {
+        sourcePath?: T;
+        sourceSha256?: T;
+        receipt?: T;
+        syncedAt?: T;
+      };
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "posts_select".
  */
 export interface PostsSelect<T extends boolean = true> {
@@ -467,7 +1096,22 @@ export interface AuthorsSelect<T extends boolean = true> {
  */
 export interface MediaSelect<T extends boolean = true> {
   tenant?: T;
+  recordId?: T;
+  kind?: T;
+  status?: T;
+  sha256?: T;
+  licence?: T;
+  attribution?: T;
+  consent?: T;
   alt?: T;
+  sync?:
+    | T
+    | {
+        sourcePath?: T;
+        sourceSha256?: T;
+        receipt?: T;
+        syncedAt?: T;
+      };
   prefix?: T;
   _objectKey?: T;
   updatedAt?: T;

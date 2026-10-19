@@ -33,7 +33,7 @@ type Doc = { id: number | string; tenant?: unknown; title?: string; email?: stri
 type Ctx = { payload: Payload; users: Record<string, Doc>; tenantA: number; tenantB: number }
 const ctx = {} as Ctx
 
-const content: CollectionSlug[] = ['posts', 'categories', 'authors', 'media']
+const content: CollectionSlug[] = ['posts', 'categories', 'authors', 'media', 'products', 'claims', 'atoms', 'site-settings']
 const PNG = Buffer.from(
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
   'base64',
@@ -104,9 +104,33 @@ beforeAll(async () => {
     const opts = asUser(who)
     await ctx.payload.create({ collection: 'categories', ...opts, data: { title: `Cat ${tag}`, slug: 'news', tenant } as never })
     await ctx.payload.create({ collection: 'authors', ...opts, data: { name: `Author ${tag}`, tenant } as never })
+    for (const status of ['approved', 'draft']) {
+      await ctx.payload.create({
+        collection: 'media', ...opts,
+        data: { alt: `Image ${tag} ${status}`, recordId: `asset:org${tag}/screen/img-${status}@1`, kind: 'screen', status, tenant } as never,
+        file: { data: PNG, mimetype: 'image/png', name: `img-${tag}-${status}.png`, size: PNG.length },
+      })
+    }
+    await ctx.payload.create({ collection: 'products', ...opts, data: { recordId: 'product:alpha', name: `Alpha ${tag}`, released: true, tenant } as never })
+    await ctx.payload.create({ collection: 'products', ...opts, data: { recordId: 'product:unreleased-module', name: `Unreleased ${tag}`, released: false, tenant } as never })
+    const claim = (id: string, visibility: string, status = 'active', extra = {}) => ({
+      recordId: `claim:${id}`, text: `${id} ${tag}`, quote: 'q', sha256: 'a'.repeat(64), visibility, status, regulated: false,
+      source: { path: 'records/products/alpha/claims.json', lineOrSection: '1', pinnedDate: '2026-10-16' },
+      approvedBy: 'marketing.head', approvedAt: '2026-10-16', tenant, ...extra,
+    })
+    for (const c of [claim('public-001', 'public'), claim('internal-001', 'internal'), claim('investor-001', 'investor-only'),
+      claim('old-001', 'public', 'deprecated', { note: 'replaced' })]) {
+      await ctx.payload.create({ collection: 'claims', ...opts, data: c as never })
+    }
+    for (const [id, visibility] of [['flow-001', 'public'], ['secret-flow-001', 'investor-only']]) {
+      await ctx.payload.create({
+        collection: 'atoms', ...opts,
+        data: { recordId: `atom:${id}`, kind: 'workflow', recipe: 'R9', visibility, status: 'active', claims: ['claim:public-001'], shape: { steps: [] }, tenant } as never,
+      })
+    }
     await ctx.payload.create({
-      collection: 'media', ...opts, data: { alt: `Image ${tag}`, tenant } as never,
-      file: { data: PNG, mimetype: 'image/png', name: `img-${tag}.png`, size: PNG.length },
+      collection: 'site-settings', ...opts,
+      data: { recordId: `site:site${tag}`, org: `org${tag}`, status: 'draft', ui: { 'cta.primary': 'Book a demo' }, owners: { accountable: 'marketing.web' }, tenant } as never,
     })
     await ctx.payload.create({
       collection: 'posts', ...opts,
@@ -285,6 +309,10 @@ describe('the same-tenant check covers every link field', () => {
     authors: ['tenant', 'photo'],
     categories: ['tenant'],
     media: ['tenant'],
+    products: ['tenant'],
+    claims: ['tenant'],
+    atoms: ['tenant'],
+    'site-settings': ['tenant'],
   }
   it.each(Object.keys(covered))('%s has no unchecked relationship or upload field', (slug) => {
     const fields = ctx.payload.collections[slug as CollectionSlug].config.flattenedFields
@@ -321,3 +349,70 @@ describe('one-time admin bootstrap', () => {
     expect(me.docs[0].role).toBe('editor')
   })
 })
+
+describe('the visibility firewall (what a website key may see)', () => {
+  const ids = async (collection: CollectionSlug, who: string) =>
+    (await visible(collection, who)).map((d) => (d as unknown as { recordId: string }).recordId).sort()
+
+  it('products: released only (no unreleased module, MP-D29)', async () => {
+    expect(await ids('products', 'readerA')).toEqual(['product:alpha'])
+    expect(await ids('products', 'viewerA')).toEqual(['product:alpha', 'product:unreleased-module'])
+  })
+  it('claims: public and active only (G-SITE-7)', async () => {
+    expect(await ids('claims', 'readerA')).toEqual(['claim:public-001'])
+    expect((await ids('claims', 'viewerA')).length).toBe(4)
+  })
+  it('atoms: public and active only', async () => {
+    expect(await ids('atoms', 'readerA')).toEqual(['atom:flow-001'])
+  })
+  it('assets: approved only', async () => {
+    expect(await ids('media', 'readerA')).toEqual(['asset:orgA/screen/img-approved@1'])
+  })
+  it('site settings: one per site, internal parts hidden from the website', async () => {
+    const [mine] = await visible('site-settings', 'readerA')
+    const settings = mine as unknown as Record<string, unknown>
+    expect(settings.ui).toEqual({ 'cta.primary': 'Book a demo' })
+    expect(settings.owners).toBeUndefined()
+    const [asViewer] = await visible('site-settings', 'viewerA')
+    expect((asViewer as unknown as Record<string, unknown>).owners).toEqual({ accountable: 'marketing.web' })
+    await expect(
+      ctx.payload.create({ collection: 'site-settings', ...asUser('syncA'), data: { recordId: 'site:second', org: 'x', tenant: ctx.tenantA } as never }),
+    ).rejects.toThrow()
+  })
+})
+
+describe('record rules', () => {
+  const base = (extra: Record<string, unknown>) => ({
+    recordId: 'claim:rule-001', text: 't', quote: 'q', sha256: 'b'.repeat(64), visibility: 'public', status: 'active', regulated: false,
+    source: { path: 'p', lineOrSection: '1', pinnedDate: '2026-10-16' }, approvedBy: 'x', approvedAt: '2026-10-16',
+    tenant: ctx.tenantA, ...extra,
+  })
+  const create = (data: Record<string, unknown>) => ctx.payload.create({ collection: 'claims', ...asUser('syncA'), data: data as never })
+
+  it('a record id is unique within a site, and may repeat across sites', async () => {
+    await expect(create(base({ recordId: 'claim:public-001' }))).rejects.toThrow()
+    expect(await ids2('claims', 'readerB')).toContain('claim:public-001')
+  })
+  it('a record id must carry its prefix', async () => {
+    await expect(create(base({ recordId: 'public-002' }))).rejects.toThrow()
+  })
+  it('a K-number makes a claim regulated, with platform vs module', async () => {
+    await expect(create(base({ recordId: 'claim:k-001', kNumber: 'K260936' }))).rejects.toThrow()
+    await expect(create(base({ recordId: 'claim:k-002', kNumber: 'K26093' , regulated: true, platformVsModule: 'platform' }))).rejects.toThrow()
+    const ok = await create(base({ recordId: 'claim:k-003', kNumber: 'K260936', regulated: true, platformVsModule: 'platform' }))
+    expect(ok.id).toBeDefined()
+  })
+  it('a deprecated claim needs superseded_by or a note', async () => {
+    await expect(create(base({ recordId: 'claim:dep-001', status: 'deprecated' }))).rejects.toThrow()
+  })
+  it('a promoted claim cannot be needs-owner', async () => {
+    await expect(create(base({ recordId: 'claim:own-001', status: 'needs-owner' }))).rejects.toThrow()
+  })
+  it('sha256 must be a real sha256', async () => {
+    await expect(create(base({ recordId: 'claim:sha-001', sha256: 'not-a-hash' }))).rejects.toThrow()
+  })
+})
+
+async function ids2(collection: CollectionSlug, who: string) {
+  return (await visible(collection, who)).map((d) => (d as unknown as { recordId: string }).recordId)
+}

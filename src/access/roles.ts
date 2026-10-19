@@ -1,4 +1,4 @@
-import type { Access, FieldAccess, PayloadRequest } from 'payload'
+import type { Access, FieldAccess, PayloadRequest, Where } from 'payload'
 
 /**
  * Who may do what (WebsiteOps plan: one tenant per site; content enters only by the
@@ -38,15 +38,27 @@ export const fieldHasRole =
 
 export const isSignedIn: Access = ({ req }) => Boolean(req.user)
 
-/** Content: signed-in only; websites see published documents only. */
+/**
+ * Content: signed-in only. A website key (site-reader) additionally sees only what may be
+ * public: published documents (drafts) and whatever `publicOnly` demands, e.g. visibility
+ * public and status active (the visibility firewall, G-SITE-7) or released products (MP-D29).
+ */
 export const readContent =
-  ({ drafts }: { drafts: boolean }): Access =>
+  ({ drafts = false, publicOnly }: { drafts?: boolean; publicOnly?: Where } = {}): Access =>
   ({ req }) => {
     const role = roleOf(req)
     if (!req.user || !role || !ROLES.includes(role)) return false
-    if (drafts && role === 'site-reader') return { _status: { equals: 'published' } }
-    return true
+    if (role !== 'site-reader') return true
+    const rules: Where[] = []
+    if (drafts) rules.push({ _status: { equals: 'published' } })
+    if (publicOnly) rules.push(publicOnly)
+    return rules.length ? { and: rules } : true
   }
+
+/** The visibility firewall for records that carry visibility and status. */
+export const PUBLIC_ACTIVE: Where = {
+  and: [{ visibility: { equals: 'public' } }, { status: { equals: 'active' } }],
+}
 
 /** Content writes come only from the sync account. */
 export const writeContent: Access = hasRole('sync')
