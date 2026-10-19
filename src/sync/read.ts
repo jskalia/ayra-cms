@@ -190,7 +190,7 @@ export const mapPage = (m: Record<string, unknown>, body: string) => ({
   reviewBy: m.review_by === undefined ? undefined : String(m.review_by),
   status: m.status,
   approved: approval(m.approved as Record<string, unknown>),
-  bodyMarkdown: body || undefined,
+  bodyMarkdown: body, // always sent: '' clears a removed body
 })
 
 export const mapPost = (m: Record<string, unknown>, body: string, slug: string) => {
@@ -212,7 +212,7 @@ export const mapPost = (m: Record<string, unknown>, body: string, slug: string) 
     approved: approval(m.approved as Record<string, unknown>),
     owner: m.owner,
     reviewBy: m.review_by === undefined ? undefined : String(m.review_by),
-    bodyMarkdown: body || undefined,
+    bodyMarkdown: body, // always sent: '' clears a removed body
   }
 }
 

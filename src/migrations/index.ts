@@ -7,6 +7,7 @@ import * as migration_20261019_213214_content_model_foundation from './20261019_
 import * as migration_20261019_213728_pages from './20261019_213728_pages';
 import * as migration_20261019_215845_retire_authors_categories_post_drafts from './20261019_215845_retire_authors_categories_post_drafts';
 import * as migration_20261019_215903_posts_and_whats_new from './20261019_215903_posts_and_whats_new';
+import * as migration_20261019_220955_sync_receipts_markdown_bodies from './20261019_220955_sync_receipts_markdown_bodies';
 
 export const migrations = [
   {
@@ -52,6 +53,11 @@ export const migrations = [
   {
     up: migration_20261019_215903_posts_and_whats_new.up,
     down: migration_20261019_215903_posts_and_whats_new.down,
-    name: '20261019_215903_posts_and_whats_new'
+    name: '20261019_215903_posts_and_whats_new',
+  },
+  {
+    up: migration_20261019_220955_sync_receipts_markdown_bodies.up,
+    down: migration_20261019_220955_sync_receipts_markdown_bodies.down,
+    name: '20261019_220955_sync_receipts_markdown_bodies'
   },
 ];

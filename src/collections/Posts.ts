@@ -3,6 +3,7 @@ import { ValidationError, type CollectionBeforeValidateHook, type CollectionConf
 import { hasRole, readContent, writeContent } from '../access/roles'
 import { recordIdField, syncField, visibilityField } from '../fields/record'
 import { bannedVocabularyBeforeChange } from '../hooks/bannedVocabulary'
+import { markdownBody } from '../hooks/markdownBody'
 import { publicReferences } from '../hooks/pageReferences'
 import { richTextRefs, sameTenantReferences } from '../hooks/sameTenantReferences'
 
@@ -40,6 +41,7 @@ export const Posts: CollectionConfig = {
   admin: { useAsTitle: 'title', defaultColumns: ['title', 'status', 'publishedAt', 'visibility'] },
   hooks: {
     beforeValidate: [
+      markdownBody,
       sameTenantReferences((d) => richTextRefs(d.body)),
       postRules,
       publicReferences({
@@ -67,6 +69,11 @@ export const Posts: CollectionConfig = {
     { name: 'title', type: 'text', required: true },
     { name: 'excerpt', type: 'textarea', admin: { description: 'Card and listing text.' } },
     { name: 'body', type: 'richText', admin: { description: 'Diagram first; every factual line cites a claim.' } },
+    {
+      name: 'bodyMarkdown',
+      type: 'textarea',
+      admin: { description: 'Markdown from the _ops record; the body above is generated from it.' },
+    },
     {
       name: 'author',
       type: 'group',

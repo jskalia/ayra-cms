@@ -31,6 +31,7 @@ import { Claims } from './src/collections/Claims'
 import { Atoms } from './src/collections/Atoms'
 import { Pages } from './src/collections/Pages'
 import { WhatsNew } from './src/collections/WhatsNew'
+import { SyncReceipts } from './src/collections/SyncReceipts'
 import { bootstrapAdmin } from './src/lib/bootstrapAdmin'
 import { fieldHasRole } from './src/access/roles'
 import type { User } from './payload-types'
@@ -159,6 +160,7 @@ export default buildConfig({
         atoms: {},
         pages: {},
         'whats-new': {},
+        'sync-receipts': {},
         posts: {},
         media: {},
       },
@@ -174,7 +176,7 @@ export default buildConfig({
 
   // ADD NEW COLLECTIONS AT THE END. Payload numbers compound-index names by position
   // (tenant_recordId_1_idx, …), so inserting one earlier renames existing indexes in the DB.
-  collections: [Users, Tenants, SiteSettings, Products, Claims, Atoms, Posts, Media, Pages, WhatsNew],
+  collections: [Users, Tenants, SiteSettings, Products, Claims, Atoms, Posts, Media, Pages, WhatsNew, SyncReceipts],
 
   secret: requiredSecret(),
 

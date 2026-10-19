@@ -77,6 +77,7 @@ export interface Config {
     media: Media;
     pages: Page;
     'whats-new': WhatsNew;
+    'sync-receipts': SyncReceipt;
     'payload-kv': PayloadKv;
     'payload-preferences': PayloadPreference;
     'payload-migrations': PayloadMigration;
@@ -93,6 +94,7 @@ export interface Config {
     media: MediaSelect<false> | MediaSelect<true>;
     pages: PagesSelect<false> | PagesSelect<true>;
     'whats-new': WhatsNewSelect<false> | WhatsNewSelect<true>;
+    'sync-receipts': SyncReceiptsSelect<false> | SyncReceiptsSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
     'payload-migrations': PayloadMigrationsSelect<false> | PayloadMigrationsSelect<true>;
@@ -616,6 +618,10 @@ export interface Post {
     };
     [k: string]: unknown;
   } | null;
+  /**
+   * Markdown from the _ops record; the body above is generated from it.
+   */
+  bodyMarkdown?: string | null;
   /**
    * A real person, for BlogPosting JSON-LD.
    */
@@ -1338,6 +1344,10 @@ export interface Page {
     [k: string]: unknown;
   } | null;
   /**
+   * Markdown from the _ops record; the body above is generated from it.
+   */
+  bodyMarkdown?: string | null;
+  /**
    * Written by the _ops sync.
    */
   sync?: {
@@ -1508,6 +1518,70 @@ export interface WhatsNew {
     receipt?: string | null;
     syncedAt?: string | null;
   };
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "sync-receipts".
+ */
+export interface SyncReceipt {
+  id: number;
+  tenant?: (number | null) | Tenant;
+  receiptId: string;
+  /**
+   * Increases by one with every run for this site.
+   */
+  revision: number;
+  status: 'ok' | 'failed';
+  startedAt: string;
+  finishedAt: string;
+  /**
+   * The person who ran the sync.
+   */
+  actor: string;
+  /**
+   * The _ops org folder that was read.
+   */
+  sourceRoot?: string | null;
+  /**
+   * git commit of _ops at read time, when available.
+   */
+  opsCommit?: string | null;
+  counts?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  /**
+   * [{collection, recordId, sourcePath, sha256, action}]
+   */
+  items?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  /**
+   * Records in the site but no longer in _ops (reported, never deleted).
+   */
+  orphans?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  error?: string | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -1820,6 +1894,7 @@ export interface PostsSelect<T extends boolean = true> {
   title?: T;
   excerpt?: T;
   body?: T;
+  bodyMarkdown?: T;
   author?:
     | T
     | {
@@ -2168,6 +2243,7 @@ export interface PagesSelect<T extends boolean = true> {
         version?: T;
       };
   body?: T;
+  bodyMarkdown?: T;
   sync?:
     | T
     | {
@@ -2260,6 +2336,27 @@ export interface WhatsNewSelect<T extends boolean = true> {
         receipt?: T;
         syncedAt?: T;
       };
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "sync-receipts_select".
+ */
+export interface SyncReceiptsSelect<T extends boolean = true> {
+  tenant?: T;
+  receiptId?: T;
+  revision?: T;
+  status?: T;
+  startedAt?: T;
+  finishedAt?: T;
+  actor?: T;
+  sourceRoot?: T;
+  opsCommit?: T;
+  counts?: T;
+  items?: T;
+  orphans?: T;
+  error?: T;
   updatedAt?: T;
   createdAt?: T;
 }

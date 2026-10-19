@@ -8,6 +8,7 @@ import {
 
 import { hasRole, readContent, writeContent } from '../access/roles'
 import { jsonField, recordIdField, syncField, visibilityField } from '../fields/record'
+import { markdownBody } from '../hooks/markdownBody'
 import { pageReferences } from '../hooks/pageReferences'
 import { bannedVocabularyBeforeChange } from '../hooks/bannedVocabulary'
 import { richTextRefs, sameTenantReferences } from '../hooks/sameTenantReferences'
@@ -102,7 +103,7 @@ export const Pages: CollectionConfig = {
   hooks: {
     beforeChange: [bannedVocabularyBeforeChange],
     beforeOperation: [knownBlocksOnly],
-    beforeValidate: [sameTenantReferences((d) => richTextRefs(d.body)), pageRules, pageReferences],
+    beforeValidate: [markdownBody, sameTenantReferences((d) => richTextRefs(d.body)), pageRules, pageReferences],
   },
   access: {
     read: readContent({
@@ -170,6 +171,11 @@ export const Pages: CollectionConfig = {
       ],
     },
     { name: 'body', type: 'richText', admin: { description: 'Long-form text for article-body or legal-body pages only.' } },
+    {
+      name: 'bodyMarkdown',
+      type: 'textarea',
+      admin: { description: 'Markdown from the _ops record; the body above is generated from it.' },
+    },
     syncField,
   ],
 }
