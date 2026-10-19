@@ -313,6 +313,7 @@ describe('the same-tenant check covers every link field', () => {
     claims: ['tenant'],
     atoms: ['tenant'],
     'site-settings': ['tenant'],
+    pages: ['tenant'],
   }
   it.each(Object.keys(covered))('%s has no unchecked relationship or upload field', (slug) => {
     const fields = ctx.payload.collections[slug as CollectionSlug].config.flattenedFields
@@ -416,3 +417,76 @@ describe('record rules', () => {
 async function ids2(collection: CollectionSlug, who: string) {
   return (await visible(collection, who)).map((d) => (d as unknown as { recordId: string }).recordId)
 }
+
+describe('pages', () => {
+  const page = (extra: Record<string, unknown>) => ({
+    template: 'product', route: '/products/alpha', product: 'product:alpha', visibility: 'public', gate: 'none',
+    status: 'approved', approved: { by: 'marketing.head', at: '2026-10-20', version: '1' }, tenant: ctx.tenantA,
+    blocks: [
+      { blockType: 'hero-statement', props: { statement: 'One line', cites: ['claim:public-001'], tile: 'asset:orgA/screen/img-approved@1' } },
+      { blockType: 'workflow-diagram', props: { diagram: { recipe: 'R9', atoms: 'atom:flow-001' } } },
+    ],
+    ...extra,
+  })
+  const create = (who: string, data: Record<string, unknown>) =>
+    ctx.payload.create({ collection: 'pages', ...asUser(who), data: data as never })
+
+  it('an approved public page citing public records is accepted', async () => {
+    const ok = await create('syncA', page({ recordId: 'page:orgA/products-alpha' }))
+    expect(ok.id).toBeDefined()
+  })
+  it('an approved public page cannot cite an internal or investor-only claim', async () => {
+    for (const ref of ['claim:internal-001', 'claim:investor-001', 'claim:old-001']) {
+      await expect(create('syncA', page({
+        recordId: `page:orgA/bad-${ref.split(':')[1]}`, route: `/bad-${ref.split(':')[1]}`,
+        blocks: [{ blockType: 'proof-numbers', props: { stats: [ref] } }],
+      }))).rejects.toThrow()
+    }
+  })
+  it('an approved public page cannot cite an investor-only atom, a draft asset or an unreleased product', async () => {
+    const cases = [
+      { blocks: [{ blockType: 'workflow-diagram', props: { diagram: { atoms: 'atom:secret-flow-001' } } }] },
+      { blocks: [{ blockType: 'screens', props: { shots: [{ asset: 'asset:orgA/screen/img-draft@1' }] } }] },
+      { product: 'product:unreleased-module', blocks: [] },
+    ]
+    for (const [i, c] of cases.entries()) {
+      await expect(create('syncA', page({ recordId: `page:orgA/bad-${i}`, route: `/bad-x-${i}`, ...c }))).rejects.toThrow()
+    }
+  })
+  it('a page cannot cite a record that does not exist in its own site', async () => {
+    await expect(create('syncA', page({
+      recordId: 'page:orgA/missing', route: '/missing', blocks: [{ blockType: 'quote', props: { quote: 'claim:does-not-exist' } }],
+    }))).rejects.toThrow()
+  })
+  it('an approved internal page may cite internal records; a draft may cite anything', async () => {
+    const internal = await create('syncA', page({
+      recordId: 'page:orgA/internal', route: '/internal', visibility: 'internal', template: 'proof', product: undefined,
+      blocks: [{ blockType: 'proof-numbers', props: { stats: ['claim:internal-001'] } }],
+    }))
+    expect(internal.id).toBeDefined()
+    const draft = await create('syncA', page({
+      recordId: 'page:orgA/draft', route: '/draft', status: 'draft', blocks: [{ blockType: 'quote', props: { quote: 'claim:not-yet' } }],
+    }))
+    expect(draft.id).toBeDefined()
+  })
+  it('routes and record ids are unique within a site, not across sites', async () => {
+    await expect(create('syncA', page({ recordId: 'page:orgA/other' }))).rejects.toThrow()
+    await expect(create('syncA', page({ route: '/elsewhere', recordId: 'page:orgA/products-alpha' }))).rejects.toThrow()
+    const inB = await create('syncB', page({
+      recordId: 'page:orgB/products-alpha', tenant: ctx.tenantB,
+      blocks: [{ blockType: 'hero-statement', props: { cites: ['claim:public-001'], tile: 'asset:orgB/screen/img-approved@1' } }],
+    }))
+    expect(inB.id).toBeDefined()
+  })
+  it('page rules: gated pages are noindex; approved pages name their approver; shell blocks are not page blocks', async () => {
+    await expect(create('syncA', page({ recordId: 'page:orgA/gated', route: '/gated', gate: 'investor', template: 'portal', product: undefined, blocks: [] }))).rejects.toThrow()
+    await expect(create('syncA', page({ recordId: 'page:orgA/noappr', route: '/noappr', approved: {} }))).rejects.toThrow()
+    await expect(create('syncA', page({ recordId: 'page:orgA/shell', route: '/shell', blocks: [{ blockType: 'site-header', props: {} }] }))).rejects.toThrow()
+  })
+  it('a website key sees approved public pages only', async () => {
+    const routes = (await visible('pages', 'readerA')).map((p) => (p as unknown as { route: string }).route).sort()
+    expect(routes).toEqual(['/products/alpha'])
+    const all = (await visible('pages', 'viewerA')).map((p) => (p as unknown as { route: string }).route).sort()
+    expect(all).toEqual(['/draft', '/internal', '/products/alpha'])
+  })
+})

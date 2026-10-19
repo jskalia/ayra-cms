@@ -31,6 +31,7 @@ import { SiteSettings } from './src/collections/SiteSettings'
 import { Products } from './src/collections/Products'
 import { Claims } from './src/collections/Claims'
 import { Atoms } from './src/collections/Atoms'
+import { Pages } from './src/collections/Pages'
 import { bootstrapAdmin } from './src/lib/bootstrapAdmin'
 import { fieldHasRole } from './src/access/roles'
 import type { User } from './payload-types'
@@ -157,6 +158,7 @@ export default buildConfig({
         products: {},
         claims: {},
         atoms: {},
+        pages: {},
         posts: {},
         categories: {},
         authors: {},
@@ -172,7 +174,9 @@ export default buildConfig({
     }),
   ],
 
-  collections: [Users, Tenants, SiteSettings, Products, Claims, Atoms, Posts, Categories, Authors, Media],
+  // ADD NEW COLLECTIONS AT THE END. Payload numbers compound-index names by position
+  // (tenant_recordId_1_idx, …), so inserting one earlier renames existing indexes in the DB.
+  collections: [Users, Tenants, SiteSettings, Products, Claims, Atoms, Posts, Categories, Authors, Media, Pages],
 
   secret: requiredSecret(),
 

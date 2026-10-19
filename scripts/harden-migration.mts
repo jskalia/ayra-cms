@@ -45,6 +45,17 @@ const hardened = statements.map((s) => {
     .replace(/ADD VALUE '/g, "ADD VALUE IF NOT EXISTS '")
 })
 
+// A name that is dropped and created again in one migration means Payload renumbered its
+// generated index names (a collection was inserted before others). With IF NOT EXISTS the new
+// index could then be skipped silently, so refuse and say why.
+const dropped = new Set([...up.matchAll(/DROP INDEX(?: IF EXISTS)? "([^"]+)"/g)].map((m) => m[1]))
+const recreated = [...up.matchAll(/CREATE (?:UNIQUE )?INDEX(?: IF NOT EXISTS)? "([^"]+)"/g)].map((m) => m[1]).filter((n) => dropped.has(n))
+if (recreated.length) {
+  console.error(`REFUSED: index name(s) dropped and re-created: ${recreated.join(', ')}.`)
+  console.error('A collection was probably added before existing ones. Add new collections at the END of the list.')
+  process.exit(2)
+}
+
 const body = '\n  ' + hardened.join(';\n  ') + ';\n'
 const note = '// Safe to re-run: every statement skips what already exists (scripts/harden-migration.mts).\n'
 const out = up.slice(0, start) + body + up.slice(end)

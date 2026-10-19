@@ -77,6 +77,7 @@ export interface Config {
     categories: Category;
     authors: Author;
     media: Media;
+    pages: Page;
     'payload-kv': PayloadKv;
     'payload-preferences': PayloadPreference;
     'payload-migrations': PayloadMigration;
@@ -93,6 +94,7 @@ export interface Config {
     categories: CategoriesSelect<false> | CategoriesSelect<true>;
     authors: AuthorsSelect<false> | AuthorsSelect<true>;
     media: MediaSelect<false> | MediaSelect<true>;
+    pages: PagesSelect<false> | PagesSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
     'payload-migrations': PayloadMigrationsSelect<false> | PayloadMigrationsSelect<true>;
@@ -750,6 +752,592 @@ export interface Media {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "pages".
+ */
+export interface Page {
+  id: number;
+  tenant?: (number | null) | Tenant;
+  /**
+   * The record's id in _ops (page:…). Unique within a site.
+   */
+  recordId: string;
+  template:
+    | 'platform-home'
+    | 'solution-path'
+    | 'product'
+    | 'products-hub'
+    | 'platform'
+    | 'proof'
+    | 'article'
+    | 'whats-new-entry'
+    | 'deck'
+    | 'episode'
+    | 'portal'
+    | 'trust-center'
+    | 'legal'
+    | 'contact'
+    | 'error';
+  route: string;
+  /**
+   * Product template only; the product must be released.
+   */
+  product?: string | null;
+  /**
+   * In the template’s slot order.
+   */
+  blocks?:
+    | (
+        | {
+            /**
+             * Props of the hero-statement block, as in the page record.
+             */
+            props?:
+              | {
+                  [k: string]: unknown;
+                }
+              | unknown[]
+              | string
+              | number
+              | boolean
+              | null;
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'hero-statement';
+          }
+        | {
+            /**
+             * Props of the media-panel block, as in the page record.
+             */
+            props?:
+              | {
+                  [k: string]: unknown;
+                }
+              | unknown[]
+              | string
+              | number
+              | boolean
+              | null;
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'media-panel';
+          }
+        | {
+            /**
+             * Props of the icon-chip-rail block, as in the page record.
+             */
+            props?:
+              | {
+                  [k: string]: unknown;
+                }
+              | unknown[]
+              | string
+              | number
+              | boolean
+              | null;
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'icon-chip-rail';
+          }
+        | {
+            /**
+             * Props of the statement block, as in the page record.
+             */
+            props?:
+              | {
+                  [k: string]: unknown;
+                }
+              | unknown[]
+              | string
+              | number
+              | boolean
+              | null;
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'statement';
+          }
+        | {
+            /**
+             * Props of the feature-explorer block, as in the page record.
+             */
+            props?:
+              | {
+                  [k: string]: unknown;
+                }
+              | unknown[]
+              | string
+              | number
+              | boolean
+              | null;
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'feature-explorer';
+          }
+        | {
+            /**
+             * Props of the product-grid block, as in the page record.
+             */
+            props?:
+              | {
+                  [k: string]: unknown;
+                }
+              | unknown[]
+              | string
+              | number
+              | boolean
+              | null;
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'product-grid';
+          }
+        | {
+            /**
+             * Props of the capability-trio block, as in the page record.
+             */
+            props?:
+              | {
+                  [k: string]: unknown;
+                }
+              | unknown[]
+              | string
+              | number
+              | boolean
+              | null;
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'capability-trio';
+          }
+        | {
+            /**
+             * Props of the proof-numbers block, as in the page record.
+             */
+            props?:
+              | {
+                  [k: string]: unknown;
+                }
+              | unknown[]
+              | string
+              | number
+              | boolean
+              | null;
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'proof-numbers';
+          }
+        | {
+            /**
+             * Props of the clearance-strip block, as in the page record.
+             */
+            props?:
+              | {
+                  [k: string]: unknown;
+                }
+              | unknown[]
+              | string
+              | number
+              | boolean
+              | null;
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'clearance-strip';
+          }
+        | {
+            /**
+             * Props of the screens block, as in the page record.
+             */
+            props?:
+              | {
+                  [k: string]: unknown;
+                }
+              | unknown[]
+              | string
+              | number
+              | boolean
+              | null;
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'screens';
+          }
+        | {
+            /**
+             * Props of the workflow-diagram block, as in the page record.
+             */
+            props?:
+              | {
+                  [k: string]: unknown;
+                }
+              | unknown[]
+              | string
+              | number
+              | boolean
+              | null;
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'workflow-diagram';
+          }
+        | {
+            /**
+             * Props of the platform-map block, as in the page record.
+             */
+            props?:
+              | {
+                  [k: string]: unknown;
+                }
+              | unknown[]
+              | string
+              | number
+              | boolean
+              | null;
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'platform-map';
+          }
+        | {
+            /**
+             * Props of the logo-wall block, as in the page record.
+             */
+            props?:
+              | {
+                  [k: string]: unknown;
+                }
+              | unknown[]
+              | string
+              | number
+              | boolean
+              | null;
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'logo-wall';
+          }
+        | {
+            /**
+             * Props of the quote block, as in the page record.
+             */
+            props?:
+              | {
+                  [k: string]: unknown;
+                }
+              | unknown[]
+              | string
+              | number
+              | boolean
+              | null;
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'quote';
+          }
+        | {
+            /**
+             * Props of the timeline block, as in the page record.
+             */
+            props?:
+              | {
+                  [k: string]: unknown;
+                }
+              | unknown[]
+              | string
+              | number
+              | boolean
+              | null;
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'timeline';
+          }
+        | {
+            /**
+             * Props of the audience-showcase block, as in the page record.
+             */
+            props?:
+              | {
+                  [k: string]: unknown;
+                }
+              | unknown[]
+              | string
+              | number
+              | boolean
+              | null;
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'audience-showcase';
+          }
+        | {
+            /**
+             * Props of the split-cta block, as in the page record.
+             */
+            props?:
+              | {
+                  [k: string]: unknown;
+                }
+              | unknown[]
+              | string
+              | number
+              | boolean
+              | null;
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'split-cta';
+          }
+        | {
+            /**
+             * Props of the contact-form block, as in the page record.
+             */
+            props?:
+              | {
+                  [k: string]: unknown;
+                }
+              | unknown[]
+              | string
+              | number
+              | boolean
+              | null;
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'contact-form';
+          }
+        | {
+            /**
+             * Props of the newsletter block, as in the page record.
+             */
+            props?:
+              | {
+                  [k: string]: unknown;
+                }
+              | unknown[]
+              | string
+              | number
+              | boolean
+              | null;
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'newsletter';
+          }
+        | {
+            /**
+             * Props of the faq block, as in the page record.
+             */
+            props?:
+              | {
+                  [k: string]: unknown;
+                }
+              | unknown[]
+              | string
+              | number
+              | boolean
+              | null;
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'faq';
+          }
+        | {
+            /**
+             * Props of the card-feed block, as in the page record.
+             */
+            props?:
+              | {
+                  [k: string]: unknown;
+                }
+              | unknown[]
+              | string
+              | number
+              | boolean
+              | null;
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'card-feed';
+          }
+        | {
+            /**
+             * Props of the article-body block, as in the page record.
+             */
+            props?:
+              | {
+                  [k: string]: unknown;
+                }
+              | unknown[]
+              | string
+              | number
+              | boolean
+              | null;
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'article-body';
+          }
+        | {
+            /**
+             * Props of the deck-embed block, as in the page record.
+             */
+            props?:
+              | {
+                  [k: string]: unknown;
+                }
+              | unknown[]
+              | string
+              | number
+              | boolean
+              | null;
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'deck-embed';
+          }
+        | {
+            /**
+             * Props of the episode-player block, as in the page record.
+             */
+            props?:
+              | {
+                  [k: string]: unknown;
+                }
+              | unknown[]
+              | string
+              | number
+              | boolean
+              | null;
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'episode-player';
+          }
+        | {
+            /**
+             * Props of the gated-sign-in block, as in the page record.
+             */
+            props?:
+              | {
+                  [k: string]: unknown;
+                }
+              | unknown[]
+              | string
+              | number
+              | boolean
+              | null;
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'gated-sign-in';
+          }
+        | {
+            /**
+             * Props of the document-list block, as in the page record.
+             */
+            props?:
+              | {
+                  [k: string]: unknown;
+                }
+              | unknown[]
+              | string
+              | number
+              | boolean
+              | null;
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'document-list';
+          }
+        | {
+            /**
+             * Props of the legal-body block, as in the page record.
+             */
+            props?:
+              | {
+                  [k: string]: unknown;
+                }
+              | unknown[]
+              | string
+              | number
+              | boolean
+              | null;
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'legal-body';
+          }
+        | {
+            /**
+             * Props of the error-page block, as in the page record.
+             */
+            props?:
+              | {
+                  [k: string]: unknown;
+                }
+              | unknown[]
+              | string
+              | number
+              | boolean
+              | null;
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'error-page';
+          }
+      )[]
+    | null;
+  seo?: {
+    title?: string | null;
+    description?: string | null;
+    canonical?: string | null;
+    /**
+     * auto, or asset:<org>/og/<id>@<v>
+     */
+    og?: string | null;
+    jsonld?: string[] | null;
+    sitemap?: boolean | null;
+    llmsTxt?: boolean | null;
+    noindex?: boolean | null;
+  };
+  /**
+   * Websites only ever see public records (G-SITE-7).
+   */
+  visibility: 'public' | 'internal' | 'investor-only';
+  gate: 'none' | 'investor' | 'trust' | 'partner';
+  /**
+   * Position that owns the page (completeness area 3).
+   */
+  owner?: string | null;
+  /**
+   * yyyy-mm-dd
+   */
+  reviewBy?: string | null;
+  status: 'draft' | 'approved' | 'retired';
+  /**
+   * marketing.head approves the exact version.
+   */
+  approved?: {
+    by?: string | null;
+    at?: string | null;
+    version?: string | null;
+  };
+  /**
+   * Long-form text for article-body or legal-body pages only.
+   */
+  body?: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  } | null;
+  /**
+   * Written by the _ops sync.
+   */
+  sync?: {
+    /**
+     * Path of the source record in _ops.
+     */
+    sourcePath?: string | null;
+    sourceSha256?: string | null;
+    /**
+     * Id of the sync receipt that wrote this version.
+     */
+    receipt?: string | null;
+    syncedAt?: string | null;
+  };
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-kv".
  */
 export interface PayloadKv {
@@ -1159,6 +1747,252 @@ export interface MediaSelect<T extends boolean = true> {
               filename?: T;
             };
       };
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "pages_select".
+ */
+export interface PagesSelect<T extends boolean = true> {
+  tenant?: T;
+  recordId?: T;
+  template?: T;
+  route?: T;
+  product?: T;
+  blocks?:
+    | T
+    | {
+        'hero-statement'?:
+          | T
+          | {
+              props?: T;
+              id?: T;
+              blockName?: T;
+            };
+        'media-panel'?:
+          | T
+          | {
+              props?: T;
+              id?: T;
+              blockName?: T;
+            };
+        'icon-chip-rail'?:
+          | T
+          | {
+              props?: T;
+              id?: T;
+              blockName?: T;
+            };
+        statement?:
+          | T
+          | {
+              props?: T;
+              id?: T;
+              blockName?: T;
+            };
+        'feature-explorer'?:
+          | T
+          | {
+              props?: T;
+              id?: T;
+              blockName?: T;
+            };
+        'product-grid'?:
+          | T
+          | {
+              props?: T;
+              id?: T;
+              blockName?: T;
+            };
+        'capability-trio'?:
+          | T
+          | {
+              props?: T;
+              id?: T;
+              blockName?: T;
+            };
+        'proof-numbers'?:
+          | T
+          | {
+              props?: T;
+              id?: T;
+              blockName?: T;
+            };
+        'clearance-strip'?:
+          | T
+          | {
+              props?: T;
+              id?: T;
+              blockName?: T;
+            };
+        screens?:
+          | T
+          | {
+              props?: T;
+              id?: T;
+              blockName?: T;
+            };
+        'workflow-diagram'?:
+          | T
+          | {
+              props?: T;
+              id?: T;
+              blockName?: T;
+            };
+        'platform-map'?:
+          | T
+          | {
+              props?: T;
+              id?: T;
+              blockName?: T;
+            };
+        'logo-wall'?:
+          | T
+          | {
+              props?: T;
+              id?: T;
+              blockName?: T;
+            };
+        quote?:
+          | T
+          | {
+              props?: T;
+              id?: T;
+              blockName?: T;
+            };
+        timeline?:
+          | T
+          | {
+              props?: T;
+              id?: T;
+              blockName?: T;
+            };
+        'audience-showcase'?:
+          | T
+          | {
+              props?: T;
+              id?: T;
+              blockName?: T;
+            };
+        'split-cta'?:
+          | T
+          | {
+              props?: T;
+              id?: T;
+              blockName?: T;
+            };
+        'contact-form'?:
+          | T
+          | {
+              props?: T;
+              id?: T;
+              blockName?: T;
+            };
+        newsletter?:
+          | T
+          | {
+              props?: T;
+              id?: T;
+              blockName?: T;
+            };
+        faq?:
+          | T
+          | {
+              props?: T;
+              id?: T;
+              blockName?: T;
+            };
+        'card-feed'?:
+          | T
+          | {
+              props?: T;
+              id?: T;
+              blockName?: T;
+            };
+        'article-body'?:
+          | T
+          | {
+              props?: T;
+              id?: T;
+              blockName?: T;
+            };
+        'deck-embed'?:
+          | T
+          | {
+              props?: T;
+              id?: T;
+              blockName?: T;
+            };
+        'episode-player'?:
+          | T
+          | {
+              props?: T;
+              id?: T;
+              blockName?: T;
+            };
+        'gated-sign-in'?:
+          | T
+          | {
+              props?: T;
+              id?: T;
+              blockName?: T;
+            };
+        'document-list'?:
+          | T
+          | {
+              props?: T;
+              id?: T;
+              blockName?: T;
+            };
+        'legal-body'?:
+          | T
+          | {
+              props?: T;
+              id?: T;
+              blockName?: T;
+            };
+        'error-page'?:
+          | T
+          | {
+              props?: T;
+              id?: T;
+              blockName?: T;
+            };
+      };
+  seo?:
+    | T
+    | {
+        title?: T;
+        description?: T;
+        canonical?: T;
+        og?: T;
+        jsonld?: T;
+        sitemap?: T;
+        llmsTxt?: T;
+        noindex?: T;
+      };
+  visibility?: T;
+  gate?: T;
+  owner?: T;
+  reviewBy?: T;
+  status?: T;
+  approved?:
+    | T
+    | {
+        by?: T;
+        at?: T;
+        version?: T;
+      };
+  body?: T;
+  sync?:
+    | T
+    | {
+        sourcePath?: T;
+        sourceSha256?: T;
+        receipt?: T;
+        syncedAt?: T;
+      };
+  updatedAt?: T;
+  createdAt?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema

@@ -4,6 +4,7 @@ import * as migration_20261019_203808_blob_storage_fields from './20261019_20380
 import * as migration_20261019_204600_tenants_roles_api_keys from './20261019_204600_tenants_roles_api_keys';
 import * as migration_20261019_205922_document_locks_off from './20261019_205922_document_locks_off';
 import * as migration_20261019_213214_content_model_foundation from './20261019_213214_content_model_foundation';
+import * as migration_20261019_213728_pages from './20261019_213728_pages';
 
 export const migrations = [
   {
@@ -34,6 +35,11 @@ export const migrations = [
   {
     up: migration_20261019_213214_content_model_foundation.up,
     down: migration_20261019_213214_content_model_foundation.down,
-    name: '20261019_213214_content_model_foundation'
+    name: '20261019_213214_content_model_foundation',
+  },
+  {
+    up: migration_20261019_213728_pages.up,
+    down: migration_20261019_213728_pages.down,
+    name: '20261019_213728_pages'
   },
 ];
