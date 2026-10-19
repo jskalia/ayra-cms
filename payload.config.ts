@@ -27,6 +27,7 @@ import { Categories } from './src/collections/Categories'
 import { Authors } from './src/collections/Authors'
 import { Media } from './src/collections/Media'
 import { Tenants } from './src/collections/Tenants'
+import { bootstrapAdmin } from './src/lib/bootstrapAdmin'
 import { fieldHasRole } from './src/access/roles'
 import type { User } from './payload-types'
 
@@ -174,6 +175,16 @@ export default buildConfig({
   },
 
   onInit: async (payload) => {
+    // One-time admin bootstrap (any environment), set by a person in Vercel; see src/lib/bootstrapAdmin.ts.
+    try {
+      await bootstrapAdmin(payload, {
+        email: process.env.PAYLOAD_BOOTSTRAP_ADMIN_EMAIL,
+        password: process.env.PAYLOAD_BOOTSTRAP_ADMIN_PASSWORD,
+      })
+    } catch (err: unknown) {
+      payload.logger.warn(`[bootstrap-admin] failed: ${err instanceof Error ? err.message : String(err)}`)
+    }
+
     // Local development only: seed an admin from env. Production admins are created by a person.
     if (process.env.NODE_ENV === 'production') return
     try {

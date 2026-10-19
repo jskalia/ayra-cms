@@ -292,3 +292,32 @@ describe('the same-tenant check covers every link field', () => {
     expect(links.sort()).toEqual([...covered[slug]].sort())
   })
 })
+
+describe('one-time admin bootstrap', () => {
+  it('does nothing unless both variables are set', async () => {
+    const { bootstrapAdmin } = await import('../src/lib/bootstrapAdmin')
+    expect(await bootstrapAdmin(ctx.payload, {})).toBe('not-configured')
+    expect(await bootstrapAdmin(ctx.payload, { email: 'boot@example.test' })).toBe('not-configured')
+  })
+  it('refuses a short password', async () => {
+    const { bootstrapAdmin } = await import('../src/lib/bootstrapAdmin')
+    expect(await bootstrapAdmin(ctx.payload, { email: 'boot@example.test', password: 'short' })).toBe('too-short')
+  })
+  it('creates one admin who can sign in, once', async () => {
+    const { bootstrapAdmin } = await import('../src/lib/bootstrapAdmin')
+    const creds = { email: 'Boot@Example.test', password: 'a-long-test-password' }
+    expect(await bootstrapAdmin(ctx.payload, creds)).toBe('created')
+    expect(await bootstrapAdmin(ctx.payload, creds)).toBe('exists')
+    const login = await ctx.payload.login({ collection: 'users', data: { email: 'boot@example.test', password: creds.password } })
+    expect(login.user?.role).toBe('admin')
+  })
+  it('never changes an existing account (no takeover)', async () => {
+    const { bootstrapAdmin } = await import('../src/lib/bootstrapAdmin')
+    expect(await bootstrapAdmin(ctx.payload, { email: 'viewera@example.test', password: 'attacker-password-123' })).toBe('exists')
+    await expect(
+      ctx.payload.login({ collection: 'users', data: { email: 'viewera@example.test', password: 'attacker-password-123' } }),
+    ).rejects.toThrow()
+    const me = await ctx.payload.find({ collection: 'users', where: { email: { equals: 'viewera@example.test' } } })
+    expect(me.docs[0].role).toBe('editor')
+  })
+})
