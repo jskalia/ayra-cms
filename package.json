@@ -8,7 +8,9 @@
   },
   "scripts": {
     "dev": "next dev",
-    "build": "tsx scripts/push-schema.mts && next build",
+    "build": "tsx scripts/migrate-if-enabled.mts && next build",
+    "migrate": "payload migrate",
+    "migrate:create": "payload migrate:create",
     "start": "next start",
     "typecheck": "tsc --noEmit"
   },
