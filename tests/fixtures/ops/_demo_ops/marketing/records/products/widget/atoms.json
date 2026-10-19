@@ -1,0 +1,44 @@
+{
+  "schemaVersion": 1,
+  "entity": "widget",
+  "atoms": [
+    {
+      "id": "widget-flow-001",
+      "version": 1,
+      "kind": "workflow",
+      "recipe": "R9",
+      "title": "Before and after",
+      "claims": [
+        "claim:widget-overview-001"
+      ],
+      "visibility": "public",
+      "status": "active",
+      "before_after": {
+        "before": "Requests wait in one queue",
+        "after": "Urgent requests go first"
+      },
+      "steps": [
+        {
+          "actor": "Requester",
+          "action": "Sends a request"
+        },
+        {
+          "actor": "Widget",
+          "action": "Scores urgency",
+          "system": "Widget"
+        }
+      ]
+    },
+    {
+      "id": "widget-plan-001",
+      "kind": "card",
+      "claims": [
+        "claim:widget-roadmap-001"
+      ],
+      "visibility": "investor-only",
+      "status": "active",
+      "body": "Roadmap card",
+      "title": "What comes next"
+    }
+  ]
+}

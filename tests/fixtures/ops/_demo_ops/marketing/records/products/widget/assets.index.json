@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "entity": "widget",
+  "assets": [
+    {
+      "id": "asset:demo/screen/widget-home@1",
+      "file": "assets/widget-home.png",
+      "sha256": "c414cd0e204de974f73753c7e28d7638e7b3691bb8b1a2bab6b25bb7fed7ce77",
+      "kind": "screen",
+      "status": "approved",
+      "alt": "Widget home screen",
+      "licence": "own",
+      "attribution": "Demo Inc.",
+      "consent": "none needed"
+    }
+  ]
+}

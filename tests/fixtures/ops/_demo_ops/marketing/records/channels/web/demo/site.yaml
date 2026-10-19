@@ -1,0 +1,32 @@
+# Sample site record (fictional), shaped like websiteops_plan/templates/site.yaml
+schema: websiteops.site/v1
+site: demo
+org: demo
+brand: demo
+status: draft
+look: house-style
+domains:
+  primary: demo.example
+  www: redirect-to-apex
+  redirect:
+    - {domain: old-demo.example, rule: keep-path, keep_served: [/.well-known/assetlinks.json]}
+cms: {app: ayra-cms, tenant: demo, api_key_env: DEMO_CMS_API_KEY}
+release_sources: [widget]
+kit: {path: brand/demo/kit.yaml, section: web, system_id: demo-web, version: "1", approved: false}
+nav:
+  - {id: products, label_id: nav.products, href: /products, source: released-products}
+nav_cta: {label_id: cta.primary, href: /contact}
+footer: {columns: [{heading_id: footer.company, links: [/about]}], legal: legal_set, cookie_settings_link: true}
+legal_set:
+  - {type: privacy, page: legal/privacy.md, version: "1", counsel: draft}
+forms:
+  - {id: contact, purpose: contact, inbox: sales-queue, inbox_owner: marketing.web, sla_hours: 24, confirmation_email: true, send_adapter: resend, spam: [turnstile, honeypot], notice_at_collection: consent/notice.md, asks_health_information: false}
+channels:
+  - {id: linkedin, url: https://www.linkedin.com/company/demo-example, owner: marketing.web}
+consent: {register: records/channels/web/demo/cookies.yaml, notice: records/channels/web/demo/consent/notice.md, defaults: {us: opt-out, gpc: honoured, eu_uk: opt-in}, policy_version: "1"}
+ui: {nav.products: Products, cta.primary: Talk to us}
+modules: {changelog: {enabled: true, route: /whats-new, rss: true}}
+retiring: []
+owners: {accountable: marketing.web, privacy: demo.privacy}
+approvers: {copy: marketing.head}
+redesign: {state: R4, folder: marketing/work/demo-redesign/}

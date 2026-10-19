@@ -1,0 +1,54 @@
+{
+  "schemaVersion": 1,
+  "entity": "widget",
+  "claims": [
+    {
+      "id": "widget-overview-001",
+      "text": "Widget sorts incoming requests by urgency.",
+      "source": {
+        "path": "docs/widget.md",
+        "line_or_section": "Overview",
+        "pinned_date": "2026-10-01"
+      },
+      "sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+      "quote": "sorts incoming requests by urgency",
+      "visibility": "public",
+      "status": "active",
+      "regulated": false,
+      "approved_by": "marketing.head",
+      "approved_at": "2026-10-02"
+    },
+    {
+      "id": "widget-speed-001",
+      "text": "Widget answers in under one second.",
+      "source": {
+        "path": "docs/widget.md",
+        "line_or_section": "Performance",
+        "pinned_date": "2026-10-01"
+      },
+      "sha256_of_source_file": "2222222222222222222222222222222222222222222222222222222222222222",
+      "quote": "under one second",
+      "visibility": "public",
+      "status": "active",
+      "regulated": false,
+      "approved_by": "marketing.head",
+      "approved_at": "2026-10-02"
+    },
+    {
+      "id": "widget-roadmap-001",
+      "text": "Widget will add a mobile app.",
+      "source": {
+        "path": "docs/roadmap.md",
+        "line_or_section": "Next",
+        "pinned_date": "2026-10-01"
+      },
+      "sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+      "quote": "mobile app",
+      "visibility": "investor-only",
+      "status": "active",
+      "regulated": false,
+      "approved_by": "marketing.head",
+      "approved_at": "2026-10-02"
+    }
+  ]
+}
