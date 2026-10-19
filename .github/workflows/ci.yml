@@ -8,11 +8,15 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      # Placeholder so the config loads during the CI build. Not used anywhere else;
+      # real secrets live only in Vercel and .env.local.
+      PAYLOAD_SECRET: ci-build-placeholder-not-a-real-secret
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version-file: .node-version
           cache: npm
       - run: npm ci
       - run: npm run typecheck

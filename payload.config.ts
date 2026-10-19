@@ -42,6 +42,15 @@ function databaseConnectionString(): string {
   )
 }
 
+/** No default secret: this repo is public, so a fallback value would let anyone forge login tokens. */
+function requiredSecret(): string {
+  const secret = process.env.PAYLOAD_SECRET
+  if (!secret) {
+    throw new Error('PAYLOAD_SECRET is not set. Set it in .env.local or Vercel (use 32+ random characters).')
+  }
+  return secret
+}
+
 export default buildConfig({
   serverURL: process.env.PAYLOAD_CMS_URL || 'http://localhost:3000',
 
@@ -111,9 +120,10 @@ export default buildConfig({
 
   db: postgresAdapter({
     pool: { connectionString: databaseConnectionString() },
-    // Schema push is OPT-IN ONLY (slai-web lesson: auto-push on deploy once mutated
-    // production from a preview and caused a 2h outage). Deliberate flag only.
-    push: process.env.PAYLOAD_PUSH_SCHEMA === '1',
+    // Never push. Schema changes ship only as migrations in src/migrations (slai-web lesson:
+    // a push once mutated production from a preview and caused a 2h outage; a pushed DB also
+    // leaves a "dev" marker that makes later migrations silently skip). See scripts/migrate.mts.
+    push: false,
   }),
 
   plugins: [
@@ -156,7 +166,7 @@ export default buildConfig({
 
   collections: [Users, Posts, Categories, Authors, Media],
 
-  secret: process.env.PAYLOAD_SECRET || 'dev-secret-ayra-cms-local-only',
+  secret: requiredSecret(),
 
   sharp,
 
@@ -165,6 +175,8 @@ export default buildConfig({
   },
 
   onInit: async (payload) => {
+    // Local development only: seed an admin from env. Production admins are created by a person.
+    if (process.env.NODE_ENV === 'production') return
     try {
       const email = process.env.PAYLOAD_ADMIN_EMAIL
       const password = process.env.PAYLOAD_ADMIN_PASSWORD
