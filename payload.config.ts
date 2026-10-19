@@ -23,8 +23,6 @@ import sharp from 'sharp'
 
 import { Users } from './src/collections/Users'
 import { Posts } from './src/collections/Posts'
-import { Categories } from './src/collections/Categories'
-import { Authors } from './src/collections/Authors'
 import { Media } from './src/collections/Media'
 import { Tenants } from './src/collections/Tenants'
 import { SiteSettings } from './src/collections/SiteSettings'
@@ -32,6 +30,7 @@ import { Products } from './src/collections/Products'
 import { Claims } from './src/collections/Claims'
 import { Atoms } from './src/collections/Atoms'
 import { Pages } from './src/collections/Pages'
+import { WhatsNew } from './src/collections/WhatsNew'
 import { bootstrapAdmin } from './src/lib/bootstrapAdmin'
 import { fieldHasRole } from './src/access/roles'
 import type { User } from './payload-types'
@@ -159,9 +158,8 @@ export default buildConfig({
         claims: {},
         atoms: {},
         pages: {},
+        'whats-new': {},
         posts: {},
-        categories: {},
-        authors: {},
         media: {},
       },
       userHasAccessToAllTenants: (user) => user?.role === 'admin',
@@ -176,7 +174,7 @@ export default buildConfig({
 
   // ADD NEW COLLECTIONS AT THE END. Payload numbers compound-index names by position
   // (tenant_recordId_1_idx, …), so inserting one earlier renames existing indexes in the DB.
-  collections: [Users, Tenants, SiteSettings, Products, Claims, Atoms, Posts, Categories, Authors, Media, Pages],
+  collections: [Users, Tenants, SiteSettings, Products, Claims, Atoms, Posts, Media, Pages, WhatsNew],
 
   secret: requiredSecret(),
 

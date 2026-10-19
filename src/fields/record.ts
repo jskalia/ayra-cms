@@ -9,21 +9,43 @@ import type { Field, FieldAccess } from 'payload'
  *  sync       where the record came from and which sync wrote it, so a receipt's hashes can be
  *             checked against the tenant.
  */
+const SLUG = '[a-z0-9]+(?:-[a-z0-9]+)*'
+/** Id formats, from Sir's schemas (claims/atoms.schema.json, page.md, release-record.md, frames.md). */
+export const RECORD_ID_PATTERNS: Record<string, RegExp> = {
+  'claim:': new RegExp(`^claim:${SLUG}$`),
+  'atom:': new RegExp(`^atom:(?:${SLUG}/)?${SLUG}(?:@[0-9]+)?$`),
+  'asset:': new RegExp(`^asset:${SLUG}/\\S+@[0-9]+$`),
+  'product:': new RegExp(`^product:${SLUG}$`),
+  'page:': new RegExp(`^page:${SLUG}/[a-z0-9][a-z0-9/-]*$`),
+  'post:': new RegExp(`^post:${SLUG}$`),
+  'release:': new RegExp(`^release:${SLUG}/[0-9]{4}-${SLUG}$`),
+  'site:': new RegExp(`^site:${SLUG}$`),
+}
+
 export const recordIdField = (prefix: string): Field => ({
   name: 'recordId',
   type: 'text',
   required: true,
   index: true,
-  admin: { description: `The record's id in _ops (${prefix}…). Unique within a site.` },
+  admin: { description: `The record's id in _ops (${prefix}…). Unique within a site; never changes.` },
   validate: (value: unknown) =>
-    typeof value === 'string' && value.startsWith(prefix) && value.length > prefix.length
+    typeof value === 'string' && RECORD_ID_PATTERNS[prefix].test(value)
       ? true
-      : `Must start with "${prefix}".`,
+      : `Not a valid ${prefix} id (lowercase, hyphenated, as in the _ops record).`,
 })
+
+/** Internal metadata a website key never needs. */
+export const internalRead: { read: FieldAccess } = {
+  read: ({ req }) => {
+    const role = (req.user as { role?: string } | null)?.role
+    return role === 'admin' || role === 'editor' || role === 'sync'
+  },
+}
 
 export const syncField: Field = {
   name: 'sync',
   type: 'group',
+  access: internalRead,
   admin: { description: 'Written by the _ops sync.' },
   fields: [
     { name: 'sourcePath', type: 'text', admin: { description: 'Path of the source record in _ops.' } },

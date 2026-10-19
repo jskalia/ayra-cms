@@ -1,10 +1,10 @@
 import type { CollectionConfig } from 'payload'
 
-import { readContent, writeContent } from '../access/roles'
+import { hasRole, readContent, writeContent } from '../access/roles'
 import { recordIdField, recordIndexes, sha256Field, syncField } from '../fields/record'
+import { bannedVocabularyBeforeChange } from '../hooks/bannedVocabulary'
 import { sameTenantReferences } from '../hooks/sameTenantReferences'
 
-import { rebuildSitesAfterChange, rebuildSitesAfterDelete } from '../hooks/rebuildSites'
 
 /**
  * Assets: approved images, each with its asset id (metadesign/frames.md: asset:<org>/<kind>/<id>@<v>),
@@ -27,9 +27,8 @@ export const Media: CollectionConfig = {
     ],
   },
   hooks: {
+    beforeChange: [bannedVocabularyBeforeChange],
     beforeValidate: [sameTenantReferences()],
-    afterChange: [rebuildSitesAfterChange],
-    afterDelete: [rebuildSitesAfterDelete],
   },
 
   access: {
@@ -37,6 +36,8 @@ export const Media: CollectionConfig = {
     create: writeContent,
     update: writeContent,
     delete: writeContent,
+    // No versions today; if they are ever enabled, website keys must not read them.
+    readVersions: hasRole('admin', 'editor', 'sync'),
   },
   fields: [
     recordIdField('asset:'),

@@ -74,10 +74,9 @@ export interface Config {
     claims: Claim;
     atoms: Atom;
     posts: Post;
-    categories: Category;
-    authors: Author;
     media: Media;
     pages: Page;
+    'whats-new': WhatsNew;
     'payload-kv': PayloadKv;
     'payload-preferences': PayloadPreference;
     'payload-migrations': PayloadMigration;
@@ -91,10 +90,9 @@ export interface Config {
     claims: ClaimsSelect<false> | ClaimsSelect<true>;
     atoms: AtomsSelect<false> | AtomsSelect<true>;
     posts: PostsSelect<false> | PostsSelect<true>;
-    categories: CategoriesSelect<false> | CategoriesSelect<true>;
-    authors: AuthorsSelect<false> | AuthorsSelect<true>;
     media: MediaSelect<false> | MediaSelect<true>;
     pages: PagesSelect<false> | PagesSelect<true>;
+    'whats-new': WhatsNewSelect<false> | WhatsNewSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
     'payload-migrations': PayloadMigrationsSelect<false> | PayloadMigrationsSelect<true>;
@@ -209,7 +207,7 @@ export interface SiteSetting {
   id: number;
   tenant?: (number | null) | Tenant;
   /**
-   * The record's id in _ops (site:…). Unique within a site.
+   * The record's id in _ops (site:…). Unique within a site; never changes.
    */
   recordId: string;
   org: string;
@@ -416,7 +414,7 @@ export interface Product {
   id: number;
   tenant?: (number | null) | Tenant;
   /**
-   * The record's id in _ops (product:…). Unique within a site.
+   * The record's id in _ops (product:…). Unique within a site; never changes.
    */
   recordId: string;
   name: string;
@@ -466,7 +464,7 @@ export interface Claim {
   id: number;
   tenant?: (number | null) | Tenant;
   /**
-   * The record's id in _ops (claim:…). Unique within a site.
+   * The record's id in _ops (claim:…). Unique within a site; never changes.
    */
   recordId: string;
   /**
@@ -529,7 +527,7 @@ export interface Atom {
   id: number;
   tenant?: (number | null) | Tenant;
   /**
-   * The record's id in _ops (atom:…). Unique within a site.
+   * The record's id in _ops (atom:…). Unique within a site; never changes.
    */
   recordId: string;
   version?: number | null;
@@ -587,16 +585,23 @@ export interface Atom {
 export interface Post {
   id: number;
   tenant?: (number | null) | Tenant;
-  title: string;
   /**
-   * URL segment, e.g. /blog/why-agents-need-context
+   * The record's id in _ops (post:…). Unique within a site; never changes.
+   */
+  recordId: string;
+  /**
+   * URL segment: /blog/<slug>.
    */
   slug: string;
+  title: string;
   /**
-   * Short summary used in listings and meta descriptions.
+   * Card and listing text.
    */
   excerpt?: string | null;
-  content: {
+  /**
+   * Diagram first; every factual line cites a claim.
+   */
+  body?: {
     root: {
       type: string;
       children: {
@@ -610,46 +615,60 @@ export interface Post {
       version: number;
     };
     [k: string]: unknown;
+  } | null;
+  /**
+   * A real person, for BlogPosting JSON-LD.
+   */
+  author?: {
+    name?: string | null;
+    jobTitle?: string | null;
+    url?: string | null;
+    sameAs?: string[] | null;
   };
-  categories?: (number | Category)[] | null;
-  authors?: (number | Author)[] | null;
-  featuredImage?: (number | null) | Media;
+  tags?: string[] | null;
   publishedAt?: string | null;
   /**
-   * Overrides excerpt for SEO when set.
+   * asset:<org>/<kind>/<id>@<v>
    */
-  metaDescription?: string | null;
-  updatedAt: string;
-  createdAt: string;
-  _status?: ('draft' | 'published') | null;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "categories".
- */
-export interface Category {
-  id: number;
-  tenant?: (number | null) | Tenant;
-  title: string;
-  slug: string;
-  description?: string | null;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "authors".
- */
-export interface Author {
-  id: number;
-  tenant?: (number | null) | Tenant;
-  name: string;
+  heroAsset?: string | null;
   /**
-   * Role or byline title, e.g. "Founder, AyraAgent".
+   * claim:/atom: ids the post cites.
    */
-  title?: string | null;
-  photo?: (number | null) | Media;
-  bio?: string | null;
+  cites?: string[] | null;
+  seo?: {
+    title?: string | null;
+    description?: string | null;
+    canonical?: string | null;
+    og?: string | null;
+    noindex?: boolean | null;
+  };
+  /**
+   * Websites only ever see public records (G-SITE-7).
+   */
+  visibility: 'public' | 'internal' | 'investor-only';
+  status: 'draft' | 'approved' | 'retired';
+  approved?: {
+    by?: string | null;
+    at?: string | null;
+    version?: string | null;
+  };
+  owner?: string | null;
+  reviewBy?: string | null;
+  /**
+   * Written by the _ops sync.
+   */
+  sync?: {
+    /**
+     * Path of the source record in _ops.
+     */
+    sourcePath?: string | null;
+    sourceSha256?: string | null;
+    /**
+     * Id of the sync receipt that wrote this version.
+     */
+    receipt?: string | null;
+    syncedAt?: string | null;
+  };
   updatedAt: string;
   createdAt: string;
 }
@@ -661,7 +680,7 @@ export interface Media {
   id: number;
   tenant?: (number | null) | Tenant;
   /**
-   * The record's id in _ops (asset:…). Unique within a site.
+   * The record's id in _ops (asset:…). Unique within a site; never changes.
    */
   recordId: string;
   kind:
@@ -758,7 +777,7 @@ export interface Page {
   id: number;
   tenant?: (number | null) | Tenant;
   /**
-   * The record's id in _ops (page:…). Unique within a site.
+   * The record's id in _ops (page:…). Unique within a site; never changes.
    */
   recordId: string;
   template:
@@ -791,7 +810,7 @@ export interface Page {
             /**
              * Props of the hero-statement block, as in the page record.
              */
-            props?:
+            props:
               | {
                   [k: string]: unknown;
                 }
@@ -808,7 +827,7 @@ export interface Page {
             /**
              * Props of the media-panel block, as in the page record.
              */
-            props?:
+            props:
               | {
                   [k: string]: unknown;
                 }
@@ -825,7 +844,7 @@ export interface Page {
             /**
              * Props of the icon-chip-rail block, as in the page record.
              */
-            props?:
+            props:
               | {
                   [k: string]: unknown;
                 }
@@ -842,7 +861,7 @@ export interface Page {
             /**
              * Props of the statement block, as in the page record.
              */
-            props?:
+            props:
               | {
                   [k: string]: unknown;
                 }
@@ -859,7 +878,7 @@ export interface Page {
             /**
              * Props of the feature-explorer block, as in the page record.
              */
-            props?:
+            props:
               | {
                   [k: string]: unknown;
                 }
@@ -876,7 +895,7 @@ export interface Page {
             /**
              * Props of the product-grid block, as in the page record.
              */
-            props?:
+            props:
               | {
                   [k: string]: unknown;
                 }
@@ -893,7 +912,7 @@ export interface Page {
             /**
              * Props of the capability-trio block, as in the page record.
              */
-            props?:
+            props:
               | {
                   [k: string]: unknown;
                 }
@@ -910,7 +929,7 @@ export interface Page {
             /**
              * Props of the proof-numbers block, as in the page record.
              */
-            props?:
+            props:
               | {
                   [k: string]: unknown;
                 }
@@ -927,7 +946,7 @@ export interface Page {
             /**
              * Props of the clearance-strip block, as in the page record.
              */
-            props?:
+            props:
               | {
                   [k: string]: unknown;
                 }
@@ -944,7 +963,7 @@ export interface Page {
             /**
              * Props of the screens block, as in the page record.
              */
-            props?:
+            props:
               | {
                   [k: string]: unknown;
                 }
@@ -961,7 +980,7 @@ export interface Page {
             /**
              * Props of the workflow-diagram block, as in the page record.
              */
-            props?:
+            props:
               | {
                   [k: string]: unknown;
                 }
@@ -978,7 +997,7 @@ export interface Page {
             /**
              * Props of the platform-map block, as in the page record.
              */
-            props?:
+            props:
               | {
                   [k: string]: unknown;
                 }
@@ -995,7 +1014,7 @@ export interface Page {
             /**
              * Props of the logo-wall block, as in the page record.
              */
-            props?:
+            props:
               | {
                   [k: string]: unknown;
                 }
@@ -1012,7 +1031,7 @@ export interface Page {
             /**
              * Props of the quote block, as in the page record.
              */
-            props?:
+            props:
               | {
                   [k: string]: unknown;
                 }
@@ -1029,7 +1048,7 @@ export interface Page {
             /**
              * Props of the timeline block, as in the page record.
              */
-            props?:
+            props:
               | {
                   [k: string]: unknown;
                 }
@@ -1046,7 +1065,7 @@ export interface Page {
             /**
              * Props of the audience-showcase block, as in the page record.
              */
-            props?:
+            props:
               | {
                   [k: string]: unknown;
                 }
@@ -1063,7 +1082,7 @@ export interface Page {
             /**
              * Props of the split-cta block, as in the page record.
              */
-            props?:
+            props:
               | {
                   [k: string]: unknown;
                 }
@@ -1080,7 +1099,7 @@ export interface Page {
             /**
              * Props of the contact-form block, as in the page record.
              */
-            props?:
+            props:
               | {
                   [k: string]: unknown;
                 }
@@ -1097,7 +1116,7 @@ export interface Page {
             /**
              * Props of the newsletter block, as in the page record.
              */
-            props?:
+            props:
               | {
                   [k: string]: unknown;
                 }
@@ -1114,7 +1133,7 @@ export interface Page {
             /**
              * Props of the faq block, as in the page record.
              */
-            props?:
+            props:
               | {
                   [k: string]: unknown;
                 }
@@ -1131,7 +1150,7 @@ export interface Page {
             /**
              * Props of the card-feed block, as in the page record.
              */
-            props?:
+            props:
               | {
                   [k: string]: unknown;
                 }
@@ -1148,7 +1167,7 @@ export interface Page {
             /**
              * Props of the article-body block, as in the page record.
              */
-            props?:
+            props:
               | {
                   [k: string]: unknown;
                 }
@@ -1165,7 +1184,7 @@ export interface Page {
             /**
              * Props of the deck-embed block, as in the page record.
              */
-            props?:
+            props:
               | {
                   [k: string]: unknown;
                 }
@@ -1182,7 +1201,7 @@ export interface Page {
             /**
              * Props of the episode-player block, as in the page record.
              */
-            props?:
+            props:
               | {
                   [k: string]: unknown;
                 }
@@ -1199,7 +1218,7 @@ export interface Page {
             /**
              * Props of the gated-sign-in block, as in the page record.
              */
-            props?:
+            props:
               | {
                   [k: string]: unknown;
                 }
@@ -1216,7 +1235,7 @@ export interface Page {
             /**
              * Props of the document-list block, as in the page record.
              */
-            props?:
+            props:
               | {
                   [k: string]: unknown;
                 }
@@ -1233,7 +1252,7 @@ export interface Page {
             /**
              * Props of the legal-body block, as in the page record.
              */
-            props?:
+            props:
               | {
                   [k: string]: unknown;
                 }
@@ -1250,7 +1269,7 @@ export interface Page {
             /**
              * Props of the error-page block, as in the page record.
              */
-            props?:
+            props:
               | {
                   [k: string]: unknown;
                 }
@@ -1318,6 +1337,162 @@ export interface Page {
     };
     [k: string]: unknown;
   } | null;
+  /**
+   * Written by the _ops sync.
+   */
+  sync?: {
+    /**
+     * Path of the source record in _ops.
+     */
+    sourcePath?: string | null;
+    sourceSha256?: string | null;
+    /**
+     * Id of the sync receipt that wrote this version.
+     */
+    receipt?: string | null;
+    syncedAt?: string | null;
+  };
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "whats-new".
+ */
+export interface WhatsNew {
+  id: number;
+  tenant?: (number | null) | Tenant;
+  /**
+   * The record's id in _ops (release:…). Unique within a site; never changes.
+   */
+  recordId: string;
+  kind: 'product-release' | 'site-release';
+  product?: string | null;
+  version?: string | null;
+  releasedAt?: string | null;
+  /**
+   * Entry title (from the entry page).
+   */
+  title?: string | null;
+  /**
+   * ≤ 60 words of connective copy; facts are in what shipped.
+   */
+  summary?: string | null;
+  /**
+   * Set by the product owner.
+   */
+  tier?: ('T1' | 'T2' | 'T3') | null;
+  /**
+   * audience:<id>
+   */
+  audiences?: string[] | null;
+  /**
+   * Each line is a cited claim:<id>.
+   */
+  whatShipped?: string[] | null;
+  /**
+   * One row per regulated claim; never "FDA approved" (S-13).
+   */
+  regulated?:
+    | {
+        claim: string;
+        kNumber?: string | null;
+        platformVsModule?: ('platform' | 'module') | null;
+        fdaSignedBy?: string | null;
+        fdaSignedAt?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * Websites only ever see public records (G-SITE-7).
+   */
+  visibility: 'public' | 'internal' | 'investor-only';
+  canonicalUrl?: string | null;
+  /**
+   * The entry page record (template whats-new-entry).
+   */
+  entry?: string | null;
+  /**
+   * asset:<org>/<kind>/<id>@<v> (OG card, screens).
+   */
+  assets?: string[] | null;
+  status: 'draft' | 'approved' | 'published' | 'withdrawn';
+  features?:
+    | {
+        name: string;
+        state: 'ga' | 'beta' | 'internal';
+        claim?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  source?: {
+    type?: ('manual' | 'sdd-status' | 'pr-merged' | 'release-note' | 'tag' | 'webhook') | null;
+    ref?: string | null;
+    sha256?: string | null;
+  };
+  /**
+   * Facts deliberately left out, with the reason.
+   */
+  withheld?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  /**
+   * Channel drafts (social, newsletter); a person posts or sends each.
+   */
+  channels?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  approvals?: {
+    facts?: {
+      by?: string | null;
+      at?: string | null;
+    };
+    entry?: {
+      by?: string | null;
+      at?: string | null;
+      version?: string | null;
+    };
+    production?: {
+      by?: string | null;
+      at?: string | null;
+    };
+  };
+  /**
+   * sync, indexnow, feed and og receipts.
+   */
+  receipts?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  /**
+   * Site-release data (preview url, deployment id, build sha).
+   */
+  siteRelease?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
   /**
    * Written by the _ops sync.
    */
@@ -1640,41 +1815,51 @@ export interface AtomsSelect<T extends boolean = true> {
  */
 export interface PostsSelect<T extends boolean = true> {
   tenant?: T;
-  title?: T;
+  recordId?: T;
   slug?: T;
+  title?: T;
   excerpt?: T;
-  content?: T;
-  categories?: T;
-  authors?: T;
-  featuredImage?: T;
+  body?: T;
+  author?:
+    | T
+    | {
+        name?: T;
+        jobTitle?: T;
+        url?: T;
+        sameAs?: T;
+      };
+  tags?: T;
   publishedAt?: T;
-  metaDescription?: T;
-  updatedAt?: T;
-  createdAt?: T;
-  _status?: T;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "categories_select".
- */
-export interface CategoriesSelect<T extends boolean = true> {
-  tenant?: T;
-  title?: T;
-  slug?: T;
-  description?: T;
-  updatedAt?: T;
-  createdAt?: T;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "authors_select".
- */
-export interface AuthorsSelect<T extends boolean = true> {
-  tenant?: T;
-  name?: T;
-  title?: T;
-  photo?: T;
-  bio?: T;
+  heroAsset?: T;
+  cites?: T;
+  seo?:
+    | T
+    | {
+        title?: T;
+        description?: T;
+        canonical?: T;
+        og?: T;
+        noindex?: T;
+      };
+  visibility?: T;
+  status?: T;
+  approved?:
+    | T
+    | {
+        by?: T;
+        at?: T;
+        version?: T;
+      };
+  owner?: T;
+  reviewBy?: T;
+  sync?:
+    | T
+    | {
+        sourcePath?: T;
+        sourceSha256?: T;
+        receipt?: T;
+        syncedAt?: T;
+      };
   updatedAt?: T;
   createdAt?: T;
 }
@@ -1983,6 +2168,90 @@ export interface PagesSelect<T extends boolean = true> {
         version?: T;
       };
   body?: T;
+  sync?:
+    | T
+    | {
+        sourcePath?: T;
+        sourceSha256?: T;
+        receipt?: T;
+        syncedAt?: T;
+      };
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "whats-new_select".
+ */
+export interface WhatsNewSelect<T extends boolean = true> {
+  tenant?: T;
+  recordId?: T;
+  kind?: T;
+  product?: T;
+  version?: T;
+  releasedAt?: T;
+  title?: T;
+  summary?: T;
+  tier?: T;
+  audiences?: T;
+  whatShipped?: T;
+  regulated?:
+    | T
+    | {
+        claim?: T;
+        kNumber?: T;
+        platformVsModule?: T;
+        fdaSignedBy?: T;
+        fdaSignedAt?: T;
+        id?: T;
+      };
+  visibility?: T;
+  canonicalUrl?: T;
+  entry?: T;
+  assets?: T;
+  status?: T;
+  features?:
+    | T
+    | {
+        name?: T;
+        state?: T;
+        claim?: T;
+        id?: T;
+      };
+  source?:
+    | T
+    | {
+        type?: T;
+        ref?: T;
+        sha256?: T;
+      };
+  withheld?: T;
+  channels?: T;
+  approvals?:
+    | T
+    | {
+        facts?:
+          | T
+          | {
+              by?: T;
+              at?: T;
+            };
+        entry?:
+          | T
+          | {
+              by?: T;
+              at?: T;
+              version?: T;
+            };
+        production?:
+          | T
+          | {
+              by?: T;
+              at?: T;
+            };
+      };
+  receipts?: T;
+  siteRelease?: T;
   sync?:
     | T
     | {

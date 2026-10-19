@@ -6,9 +6,10 @@ import {
   type CollectionConfig,
 } from 'payload'
 
-import { readContent, writeContent } from '../access/roles'
+import { hasRole, readContent, writeContent } from '../access/roles'
 import { jsonField, recordIdField, syncField, visibilityField } from '../fields/record'
 import { pageReferences } from '../hooks/pageReferences'
+import { bannedVocabularyBeforeChange } from '../hooks/bannedVocabulary'
 import { richTextRefs, sameTenantReferences } from '../hooks/sameTenantReferences'
 
 /**
@@ -43,7 +44,7 @@ export const CONTENT_BLOCKS = [
 
 const blocks: Block[] = CONTENT_BLOCKS.map((slug) => ({
   slug,
-  fields: [jsonField('props', `Props of the ${slug} block, as in the page record.`)],
+  fields: [jsonField('props', `Props of the ${slug} block, as in the page record.`, { required: true })],
 }))
 
 /**
@@ -54,7 +55,10 @@ const blocks: Block[] = CONTENT_BLOCKS.map((slug) => ({
 const knownBlocksOnly: CollectionBeforeOperationHook = ({ args, operation }) => {
   if (operation !== 'create' && operation !== 'update') return args
   const blocks = (args.data as { blocks?: unknown } | undefined)?.blocks
-  if (!Array.isArray(blocks)) return args
+  if (blocks === undefined) return args
+  if (!Array.isArray(blocks)) {
+    throw new ValidationError({ collection: 'pages', errors: [{ path: 'blocks', message: 'blocks must be a list.' }] })
+  }
   const unknown = blocks
     .map((b) => (b as { blockType?: unknown })?.blockType)
     .filter((t) => !(CONTENT_BLOCKS as readonly unknown[]).includes(t))
@@ -70,7 +74,10 @@ const knownBlocksOnly: CollectionBeforeOperationHook = ({ args, operation }) => 
 const pageRules: CollectionBeforeValidateHook = ({ data, originalDoc, collection }) => {
   const p = { ...originalDoc, ...data } as Record<string, unknown>
   const errors: { path: string; message: string }[] = []
-  if (typeof p.route === 'string' && !p.route.startsWith('/')) errors.push({ path: 'route', message: 'A route starts with /.' })
+  // One leading slash, lowercase path segments, no trailing slash (except the home page "/").
+  if (typeof p.route === 'string' && !/^\/(?:[a-z0-9][a-z0-9._-]*(?:\/[a-z0-9][a-z0-9._-]*)*)?$/.test(p.route)) {
+    errors.push({ path: 'route', message: 'A route is /lowercase/segments with no trailing slash.' })
+  }
   if (p.template === 'product' && !p.product) errors.push({ path: 'product', message: 'A product page names its product.' })
   const seo = (p.seo ?? {}) as Record<string, unknown>
   if (p.gate && p.gate !== 'none' && seo.noindex !== true) {
@@ -93,16 +100,22 @@ export const Pages: CollectionConfig = {
   ],
   admin: { useAsTitle: 'route', defaultColumns: ['route', 'template', 'status', 'visibility'] },
   hooks: {
+    beforeChange: [bannedVocabularyBeforeChange],
     beforeOperation: [knownBlocksOnly],
     beforeValidate: [sameTenantReferences((d) => richTextRefs(d.body)), pageRules, pageReferences],
   },
   access: {
     read: readContent({
-      publicOnly: { and: [{ status: { equals: 'approved' } }, { visibility: { equals: 'public' } }] },
+      // Gated pages (investor, trust, partner) never reach a public website key.
+      publicOnly: {
+        and: [{ status: { equals: 'approved' } }, { visibility: { equals: 'public' } }, { gate: { equals: 'none' } }],
+      },
     }),
     create: writeContent,
     update: writeContent,
     delete: writeContent,
+    // No versions today; if they are ever enabled, website keys must not read them.
+    readVersions: hasRole('admin', 'editor', 'sync'),
   },
   fields: [
     recordIdField('page:'),

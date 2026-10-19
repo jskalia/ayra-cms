@@ -1,7 +1,8 @@
 import { ValidationError, type CollectionBeforeValidateHook, type CollectionConfig } from 'payload'
 
-import { PUBLIC_ACTIVE, readContent, writeContent } from '../access/roles'
+import { PUBLIC_ACTIVE, hasRole, readContent, writeContent } from '../access/roles'
 import {
+  internalRead,
   recordIdField,
   recordIndexes,
   recordStatusField,
@@ -9,6 +10,7 @@ import {
   syncField,
   visibilityField,
 } from '../fields/record'
+import { bannedVocabularyBeforeChange } from '../hooks/bannedVocabulary'
 import { sameTenantReferences } from '../hooks/sameTenantReferences'
 
 /**
@@ -42,12 +44,14 @@ export const Claims: CollectionConfig = {
   lockDocuments: false,
   indexes: recordIndexes,
   admin: { useAsTitle: 'recordId', defaultColumns: ['recordId', 'visibility', 'status', 'regulated'] },
-  hooks: { beforeValidate: [sameTenantReferences(), promotedClaimRules] },
+  hooks: { beforeValidate: [sameTenantReferences(), promotedClaimRules], beforeChange: [bannedVocabularyBeforeChange] },
   access: {
     read: readContent({ publicOnly: PUBLIC_ACTIVE }),
     create: writeContent,
     update: writeContent,
     delete: writeContent,
+    // No versions today; if they are ever enabled, website keys must not read them.
+    readVersions: hasRole('admin', 'editor', 'sync'),
   },
   fields: [
     recordIdField('claim:'),
@@ -56,6 +60,7 @@ export const Claims: CollectionConfig = {
     {
       name: 'source',
       type: 'group',
+      access: internalRead,
       fields: [
         { name: 'path', type: 'text', required: true },
         { name: 'lineOrSection', type: 'text', required: true },
@@ -66,7 +71,7 @@ export const Claims: CollectionConfig = {
     sha256Field('sha256', true),
     { name: 'quote', type: 'textarea', required: true },
     visibilityField,
-    { name: 'visibilityNote', type: 'text' },
+    { name: 'visibilityNote', type: 'text', access: internalRead },
     recordStatusField,
     { name: 'regulated', type: 'checkbox', required: true, defaultValue: false },
     {
@@ -98,10 +103,10 @@ export const Claims: CollectionConfig = {
         { name: 'signedAt', type: 'text' },
       ],
     },
-    { name: 'approvedBy', type: 'text', required: true },
-    { name: 'approvedAt', type: 'text', required: true, validate: datePattern },
+    { name: 'approvedBy', type: 'text', required: true, access: internalRead },
+    { name: 'approvedAt', type: 'text', required: true, validate: datePattern, access: internalRead },
     { name: 'supersededBy', type: 'text' },
-    { name: 'note', type: 'textarea' },
+    { name: 'note', type: 'textarea', access: internalRead },
     syncField,
   ],
 }

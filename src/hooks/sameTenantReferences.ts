@@ -49,8 +49,26 @@ export const richTextRefs = (value: unknown): Ref[] => {
 
 export const sameTenantReferences =
   (extract: RefExtractor = () => []): CollectionBeforeValidateHook =>
-  async ({ data, originalDoc, req, collection }) => {
+  async ({ data, originalDoc, req, collection, operation }) => {
     if (!data || roleOf(req) === 'admin') return data
+    // A record's id and site never change after it is created: moving or renaming it would
+    // silently break every page that cites it.
+    // (Payload passes an originalDoc on some creates, e.g. uploads, so test the operation.)
+    if (operation === 'update' && originalDoc) {
+      const changed = (field: string) =>
+        field in data &&
+        data[field] !== undefined &&
+        originalDoc[field] !== undefined &&
+        String(idOf(data[field])) !== String(idOf(originalDoc[field]))
+      for (const field of ['recordId', 'tenant']) {
+        if (changed(field)) {
+          throw new ValidationError({
+            collection: collection.slug,
+            errors: [{ message: `${field} cannot change after a record is created.`, path: field }],
+          })
+        }
+      }
+    }
     const tenant = idOf(data.tenant ?? originalDoc?.tenant)
     if (tenant === undefined) {
       throw new ValidationError({

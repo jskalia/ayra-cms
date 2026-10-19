@@ -1,7 +1,8 @@
 import type { CollectionConfig } from 'payload'
 
-import { fieldHasRole, readContent, writeContent } from '../access/roles'
+import { fieldHasRole, hasRole, readContent, writeContent } from '../access/roles'
 import { jsonField, recordIdField, syncField } from '../fields/record'
+import { bannedVocabularyBeforeChange } from '../hooks/bannedVocabulary'
 import { sameTenantReferences } from '../hooks/sameTenantReferences'
 
 /**
@@ -18,12 +19,14 @@ export const SiteSettings: CollectionConfig = {
   lockDocuments: false,
   // Exactly one per site: the plugin's isGlobal makes the tenant column unique in the database.
   admin: { useAsTitle: 'recordId', description: 'One per site, from its site.yaml.' },
-  hooks: { beforeValidate: [sameTenantReferences()] },
+  hooks: { beforeValidate: [sameTenantReferences()], beforeChange: [bannedVocabularyBeforeChange] },
   access: {
     read: readContent(),
     create: writeContent,
     update: writeContent,
     delete: writeContent,
+    // No versions today; if they are ever enabled, website keys must not read them.
+    readVersions: hasRole('admin', 'editor', 'sync'),
   },
   fields: [
     recordIdField('site:'),

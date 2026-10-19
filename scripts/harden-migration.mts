@@ -6,7 +6,7 @@
  *   CREATE TABLE "x"          → CREATE TABLE IF NOT EXISTS "x"
  *   CREATE [UNIQUE] INDEX "x" → … IF NOT EXISTS "x"
  *   ADD COLUMN "x"            → ADD COLUMN IF NOT EXISTS "x"
- *   DROP INDEX / DROP TABLE   → … IF EXISTS
+ *   DROP INDEX / DROP TABLE / DROP CONSTRAINT → … IF EXISTS
  *   ADD VALUE '…'             → ADD VALUE IF NOT EXISTS '…'
  *   CREATE TYPE …, ADD CONSTRAINT …  → wrapped so "already exists" is skipped
  *
@@ -25,13 +25,18 @@ const start = up.indexOf('sql`') + 4
 const end = up.lastIndexOf('`)')
 if (start < 4 || end < start) throw new Error('No sql`…` block found in up().')
 
+if (up.slice(start, end).includes('$$')) {
+  console.error('REFUSED: this migration already contains a DO $$ block; harden it by hand (the splitter cannot see inside it).')
+  process.exit(2)
+}
+
 const statements = up
   .slice(start, end)
   .split(/;\s*\n/)
   .map((s) => s.trim().replace(/;$/, ''))
   .filter(Boolean)
 
-const wrap = (s: string) => `DO $$ BEGIN ${s}; EXCEPTION WHEN duplicate_object THEN NULL; END $$`
+const wrap = (s: string) => `DO $$ BEGIN ${s}; EXCEPTION WHEN duplicate_object OR duplicate_table THEN NULL; END $$`
 const hardened = statements.map((s) => {
   if (s.startsWith('DO $$')) return s
   if (s.startsWith('CREATE TYPE') || /^ALTER TABLE "[^"]+" ADD CONSTRAINT/.test(s)) return wrap(s)
@@ -43,6 +48,9 @@ const hardened = statements.map((s) => {
     .replace(/DROP INDEX "/g, 'DROP INDEX IF EXISTS "')
     .replace(/DROP TABLE "/g, 'DROP TABLE IF EXISTS "')
     .replace(/ADD VALUE '/g, "ADD VALUE IF NOT EXISTS '")
+    .replace(/DROP CONSTRAINT "/g, 'DROP CONSTRAINT IF EXISTS "')
+    .replace(/DROP TYPE "/g, 'DROP TYPE IF EXISTS "')
+    .replace(/^ALTER TABLE "([^"]+)" DISABLE ROW LEVEL SECURITY/, 'ALTER TABLE IF EXISTS "$1" DISABLE ROW LEVEL SECURITY')
 })
 
 // A name that is dropped and created again in one migration means Payload renumbered its

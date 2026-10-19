@@ -1,7 +1,8 @@
 import type { CollectionConfig } from 'payload'
 
-import { readContent, writeContent } from '../access/roles'
+import { hasRole, readContent, writeContent } from '../access/roles'
 import { jsonField, recordIdField, recordIndexes, syncField } from '../fields/record'
+import { bannedVocabularyBeforeChange } from '../hooks/bannedVocabulary'
 import { sameTenantReferences } from '../hooks/sameTenantReferences'
 
 /**
@@ -14,12 +15,14 @@ export const Products: CollectionConfig = {
   lockDocuments: false,
   indexes: recordIndexes,
   admin: { useAsTitle: 'name', defaultColumns: ['name', 'recordId', 'released'] },
-  hooks: { beforeValidate: [sameTenantReferences()] },
+  hooks: { beforeValidate: [sameTenantReferences()], beforeChange: [bannedVocabularyBeforeChange] },
   access: {
     read: readContent({ publicOnly: { released: { equals: true } } }),
     create: writeContent,
     update: writeContent,
     delete: writeContent,
+    // No versions today; if they are ever enabled, website keys must not read them.
+    readVersions: hasRole('admin', 'editor', 'sync'),
   },
   fields: [
     recordIdField('product:'),

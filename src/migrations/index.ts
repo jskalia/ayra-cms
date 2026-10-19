@@ -5,6 +5,8 @@ import * as migration_20261019_204600_tenants_roles_api_keys from './20261019_20
 import * as migration_20261019_205922_document_locks_off from './20261019_205922_document_locks_off';
 import * as migration_20261019_213214_content_model_foundation from './20261019_213214_content_model_foundation';
 import * as migration_20261019_213728_pages from './20261019_213728_pages';
+import * as migration_20261019_215845_retire_authors_categories_post_drafts from './20261019_215845_retire_authors_categories_post_drafts';
+import * as migration_20261019_215903_posts_and_whats_new from './20261019_215903_posts_and_whats_new';
 
 export const migrations = [
   {
@@ -40,6 +42,16 @@ export const migrations = [
   {
     up: migration_20261019_213728_pages.up,
     down: migration_20261019_213728_pages.down,
-    name: '20261019_213728_pages'
+    name: '20261019_213728_pages',
+  },
+  {
+    up: migration_20261019_215845_retire_authors_categories_post_drafts.up,
+    down: migration_20261019_215845_retire_authors_categories_post_drafts.down,
+    name: '20261019_215845_retire_authors_categories_post_drafts',
+  },
+  {
+    up: migration_20261019_215903_posts_and_whats_new.up,
+    down: migration_20261019_215903_posts_and_whats_new.down,
+    name: '20261019_215903_posts_and_whats_new'
   },
 ];

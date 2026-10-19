@@ -1,7 +1,17 @@
 import type { CollectionConfig } from 'payload'
 
-import { PUBLIC_ACTIVE, readContent, writeContent } from '../access/roles'
-import { jsonField, recordIdField, recordIndexes, recordStatusField, syncField, visibilityField } from '../fields/record'
+import { PUBLIC_ACTIVE, hasRole, readContent, writeContent } from '../access/roles'
+import {
+  internalRead,
+  jsonField,
+  recordIdField,
+  recordIndexes,
+  recordStatusField,
+  syncField,
+  visibilityField,
+} from '../fields/record'
+import { bannedVocabularyBeforeChange } from '../hooks/bannedVocabulary'
+import { publicReferences } from '../hooks/pageReferences'
 import { sameTenantReferences } from '../hooks/sameTenantReferences'
 
 /**
@@ -16,12 +26,25 @@ export const Atoms: CollectionConfig = {
   lockDocuments: false,
   indexes: recordIndexes,
   admin: { useAsTitle: 'recordId', defaultColumns: ['recordId', 'kind', 'visibility', 'status'] },
-  hooks: { beforeValidate: [sameTenantReferences()] },
+  hooks: {
+    beforeValidate: [
+      sameTenantReferences(),
+      // A public, active atom may only rest on public records (it is shown on public pages).
+      publicReferences({
+        collect: (a) => [a.claims, a.assets, a.shape],
+        approved: (a) => a.status === 'active',
+        isPublic: (a) => a.visibility === 'public',
+      }),
+    ],
+    beforeChange: [bannedVocabularyBeforeChange],
+  },
   access: {
     read: readContent({ publicOnly: PUBLIC_ACTIVE }),
     create: writeContent,
     update: writeContent,
     delete: writeContent,
+    // No versions today; if they are ever enabled, website keys must not read them.
+    readVersions: hasRole('admin', 'editor', 'sync'),
   },
   fields: [
     recordIdField('atom:'),
@@ -48,7 +71,7 @@ export const Atoms: CollectionConfig = {
     },
     { name: 'assets', type: 'text', hasMany: true, admin: { description: 'asset:<org>/<kind>/<id>@<v> references.' } },
     visibilityField,
-    { name: 'visibilityNote', type: 'text' },
+    { name: 'visibilityNote', type: 'text', access: internalRead },
     recordStatusField,
     jsonField('shape', 'Kind-specific fields from atoms.json (nodes, edges, steps, rows, items, …).'),
     syncField,
