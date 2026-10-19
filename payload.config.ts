@@ -58,12 +58,12 @@ export default buildConfig({
   serverURL: process.env.PAYLOAD_CMS_URL || 'http://localhost:3000',
 
   // CSRF origins: the CMS is reached directly and through the /admin rewrites on both sites.
-  csrf: [
-    process.env.PAYLOAD_CMS_URL || 'http://localhost:3000',
-    'https://cms.ayraagent.ai',
-    'https://ayraagent.ai',
-    'https://heyayra.ai',
-  ].filter(Boolean),
+  // Only the CMS's own origin may drive a signed-in admin session (the per-site /admin
+  // proxies were dropped in the 2026-09-13 architecture review).
+  csrf: [process.env.PAYLOAD_CMS_URL || 'http://localhost:3000', 'https://cms.ayraagent.ai'],
+
+  // Not used; off so that adding a route file can never expose it.
+  graphQL: { disable: true },
 
   routes: {
     admin: '/admin',

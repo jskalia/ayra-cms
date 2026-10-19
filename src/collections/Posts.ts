@@ -1,17 +1,27 @@
 import type { CollectionConfig } from 'payload'
 
-import { readContent, writeContent } from '../access/roles'
+import { hasRole, readContent, writeContent } from '../access/roles'
+import { refs, richTextRefs, sameTenantReferences } from '../hooks/sameTenantReferences'
 
 import { rebuildSitesAfterChange, rebuildSitesAfterDelete } from '../hooks/rebuildSites'
 import { bannedVocabularyBeforeChange } from '../hooks/bannedVocabulary'
 
 export const Posts: CollectionConfig = {
   slug: 'posts',
+  lockDocuments: false,
   admin: {
     useAsTitle: 'title',
     defaultColumns: ['title', '_status', 'publishedAt', 'categories'],
   },
   hooks: {
+    beforeValidate: [
+      sameTenantReferences((d) => [
+        ...refs('media', d.featuredImage),
+        ...refs('categories', d.categories),
+        ...refs('authors', d.authors),
+        ...richTextRefs(d.content),
+      ]),
+    ],
     beforeChange: [bannedVocabularyBeforeChange],
     afterChange: [rebuildSitesAfterChange],
     afterDelete: [rebuildSitesAfterDelete],
@@ -24,6 +34,8 @@ export const Posts: CollectionConfig = {
     create: writeContent,
     update: writeContent,
     delete: writeContent,
+    // Drafts and old versions are never visible to a website key.
+    readVersions: hasRole('admin', 'editor', 'sync'),
   },
   versions: {
     drafts: true,

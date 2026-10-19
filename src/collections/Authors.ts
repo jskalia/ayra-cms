@@ -1,16 +1,19 @@
 import type { CollectionConfig } from 'payload'
 
 import { readContent, writeContent } from '../access/roles'
+import { refs, sameTenantReferences } from '../hooks/sameTenantReferences'
 
 import { rebuildSitesAfterChange, rebuildSitesAfterDelete } from '../hooks/rebuildSites'
 import { bannedVocabularyBeforeChange } from '../hooks/bannedVocabulary'
 
 export const Authors: CollectionConfig = {
   slug: 'authors',
+  lockDocuments: false,
   admin: {
     useAsTitle: 'name',
   },
   hooks: {
+    beforeValidate: [sameTenantReferences((d) => refs('media', d.photo))],
     beforeChange: [bannedVocabularyBeforeChange],
     afterChange: [rebuildSitesAfterChange],
     afterDelete: [rebuildSitesAfterDelete],

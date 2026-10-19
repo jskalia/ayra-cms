@@ -42,8 +42,9 @@ export const isSignedIn: Access = ({ req }) => Boolean(req.user)
 export const readContent =
   ({ drafts }: { drafts: boolean }): Access =>
   ({ req }) => {
-    if (!req.user) return false
-    if (drafts && roleOf(req) === 'site-reader') return { _status: { equals: 'published' } }
+    const role = roleOf(req)
+    if (!req.user || !role || !ROLES.includes(role)) return false
+    if (drafts && role === 'site-reader') return { _status: { equals: 'published' } }
     return true
   }
 

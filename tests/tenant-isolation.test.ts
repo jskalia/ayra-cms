@@ -15,7 +15,19 @@ const require = createRequire(import.meta.url)
 const pg = require('pg') as typeof import('pg')
 
 const url = process.env.DATABASE_URL ?? ''
-const safe = /@(localhost|127\.0\.0\.1)(:\d+)?\/[\w-]+_test(\?|$)/.test(url)
+// The app prefers these over DATABASE_URL, and a Blob token would upload to real storage:
+// remove them all so this test can only ever touch the throwaway database checked below.
+for (const name of Object.keys(process.env)) {
+  if (/^(DATABASE_URL_UNPOOLED|POSTGRES_|PG[A-Z]+$|BLOB_|DEPLOY_HOOK_|NEON_)/.test(name)) delete process.env[name]
+}
+const safe = (() => {
+  try {
+    const u = new URL(url)
+    return ['localhost', '127.0.0.1'].includes(u.hostname) && /^\/[\w-]+_test$/.test(u.pathname)
+  } catch {
+    return false
+  }
+})()
 
 type Doc = { id: number | string; tenant?: unknown; title?: string; email?: string; slug?: string }
 type Ctx = { payload: Payload; users: Record<string, Doc>; tenantA: number; tenantB: number }
@@ -61,6 +73,8 @@ beforeAll(async () => {
   const { default: config } = await import('../payload.config')
   const { migrations } = await import('../src/migrations')
   ctx.payload = await getPayload({ config, disableOnInit: true })
+  const connected = (ctx.payload.db as unknown as { poolOptions?: { connectionString?: string } }).poolOptions?.connectionString
+  if (connected !== url) throw new Error('Refusing to run: the app is not connected to the checked test database.')
   await ctx.payload.db.migrate({ migrations: migrations as never })
 
   const tenants = await ctx.payload.find({ collection: 'tenants', limit: 10 })
@@ -193,5 +207,72 @@ describe('the sync account writes only into its own tenant', () => {
     await expect(
       ctx.payload.create({ collection: 'categories', ...asUser('syncA'), data: { title: 'Dup', slug: 'news', tenant: ctx.tenantA } as never }),
     ).rejects.toThrow()
+  })
+})
+
+describe('review findings stay fixed', () => {
+  it('a website key cannot read drafts or old versions through /versions (F1)', async () => {
+    const attempt = ctx.payload.findVersions({ collection: 'posts', ...asUser('readerA'), limit: 100 })
+    await expect(attempt).rejects.toThrow()
+    const asViewer = await ctx.payload.findVersions({ collection: 'posts', ...asUser('viewerA'), limit: 100 })
+    expect(asViewer.docs.length).toBeGreaterThan(0)
+  })
+
+  it('sync cannot link a post to another tenant’s image, category or author (F2)', async () => {
+    const [mediaB] = await visible('media', 'readerB')
+    const [catB] = await visible('categories', 'readerB')
+    const [authorB] = await visible('authors', 'readerB')
+    const base = { title: 'Linky', content: lexical('x'), tenant: ctx.tenantA }
+    for (const [i, extra] of [
+      { featuredImage: mediaB.id },
+      { categories: [catB.id] },
+      { authors: [authorB.id] },
+    ].entries()) {
+      await expect(
+        ctx.payload.create({ collection: 'posts', ...asUser('syncA'), draft: true, data: { ...base, slug: `linky-${i}`, ...extra } as never }),
+      ).rejects.toThrow()
+    }
+    const uploadNode = { root: { type: 'root', version: 1, direction: null, format: '', indent: 0,
+      children: [{ type: 'upload', version: 3, relationTo: 'media', value: mediaB.id, fields: null, format: '' }] } }
+    await expect(
+      ctx.payload.create({ collection: 'posts', ...asUser('syncA'), draft: true, data: { ...base, slug: 'linky-rt', content: uploadNode } as never }),
+    ).rejects.toThrow()
+    const [mediaA] = await visible('media', 'readerA')
+    const ok = await ctx.payload.create({
+      collection: 'posts', ...asUser('syncA'), draft: true,
+      data: { ...base, slug: 'linky-ok', featuredImage: mediaA.id } as never,
+    })
+    expect(ok.id).toBeDefined()
+  })
+
+  it('sync cannot create a draft with no tenant (F6)', async () => {
+    await expect(
+      ctx.payload.create({ collection: 'posts', ...asUser('syncA'), draft: true, data: { title: 'Orphan', slug: 'orphan', content: lexical('x') } as never }),
+    ).rejects.toThrow()
+  })
+
+  it('website and sync accounts cannot sign in with a password (F7)', async () => {
+    for (const who of ['readerA', 'syncA']) {
+      await expect(
+        ctx.payload.login({ collection: 'users', data: { email: `${who.toLowerCase()}@example.test`, password: 'test-only-password' } }),
+      ).rejects.toThrow()
+    }
+    const ok = await ctx.payload.login({ collection: 'users', data: { email: 'viewera@example.test', password: 'test-only-password' } })
+    expect(ok.user?.email).toBe('viewera@example.test')
+  })
+
+  it('only an admin manages API keys; API accounts cannot edit themselves (F7)', async () => {
+    await expect(
+      ctx.payload.update({ collection: 'users', id: ctx.users.viewerA.id, ...asUser('viewerA'), data: { enableAPIKey: true } as never }),
+    ).rejects.toThrow()
+    await expect(
+      ctx.payload.update({ collection: 'users', id: ctx.users.readerA.id, ...asUser('readerA'), data: { name: 'renamed' } as never }),
+    ).rejects.toThrow()
+    const self = await ctx.payload.update({ collection: 'users', id: ctx.users.viewerA.id, ...asUser('viewerA'), data: { name: 'Viewer A' } as never })
+    expect(self.name).toBe('Viewer A')
+  })
+
+  it('document locks are switched off (F4)', () => {
+    expect(ctx.payload.collections['payload-locked-documents' as CollectionSlug]).toBeUndefined()
   })
 })

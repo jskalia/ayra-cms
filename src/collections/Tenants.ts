@@ -8,6 +8,7 @@ import { hasRole, isSignedIn } from '../access/roles'
  */
 export const Tenants: CollectionConfig = {
   slug: 'tenants',
+  lockDocuments: false,
   admin: {
     useAsTitle: 'name',
     defaultColumns: ['name', 'slug', 'status'],

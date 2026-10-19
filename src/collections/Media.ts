@@ -1,11 +1,13 @@
 import type { CollectionConfig } from 'payload'
 
 import { readContent, writeContent } from '../access/roles'
+import { sameTenantReferences } from '../hooks/sameTenantReferences'
 
 import { rebuildSitesAfterChange, rebuildSitesAfterDelete } from '../hooks/rebuildSites'
 
 export const Media: CollectionConfig = {
   slug: 'media',
+  lockDocuments: false,
   upload: {
     mimeTypes: ['image/*'],
     imageSizes: [
@@ -15,6 +17,7 @@ export const Media: CollectionConfig = {
     ],
   },
   hooks: {
+    beforeValidate: [sameTenantReferences()],
     afterChange: [rebuildSitesAfterChange],
     afterDelete: [rebuildSitesAfterDelete],
   },
