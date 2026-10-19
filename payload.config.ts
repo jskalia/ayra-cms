@@ -127,17 +127,17 @@ export default buildConfig({
   }),
 
   plugins: [
-    ...(process.env.BLOB_READ_WRITE_TOKEN
-      ? [
-          vercelBlobStorage({
-            enabled: true,
-            token: process.env.BLOB_READ_WRITE_TOKEN,
-            collections: {
-              media: true,
-            },
-          }),
-        ]
-      : []),
+    // Always registered, with alwaysInsertFields, so the plugin's media columns exist in every
+    // environment. Without it, migrations generated locally (no token) miss columns that
+    // production (token set) queries, and /cms-api/media fails.
+    vercelBlobStorage({
+      enabled: Boolean(process.env.BLOB_READ_WRITE_TOKEN),
+      token: process.env.BLOB_READ_WRITE_TOKEN,
+      alwaysInsertFields: true,
+      collections: {
+        media: true,
+      },
+    }),
     ...(process.env.PAYLOAD_MCP_ENABLED === '1'
       ? [
           mcpPlugin({
