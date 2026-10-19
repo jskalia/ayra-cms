@@ -59,6 +59,16 @@ export const sameTenantReferences =
       })
     }
 
+    // One message for every refusal, so a refusal never reveals which site owns a record.
+    const refuse = () => {
+      throw new ValidationError({
+        collection: collection.slug,
+        errors: [{ message: 'Not allowed: this links to, or is placed in, another site.', path: 'tenant' }],
+      })
+    }
+    const assigned = ((req.user as { tenants?: { tenant: unknown }[] } | null)?.tenants ?? []).map((t) => idOf(t.tenant))
+    if (req.user && !assigned.some((id) => String(id) === String(tenant))) refuse()
+
     const merged = { ...originalDoc, ...data } as Record<string, unknown>
     const byCollection = new Map<CollectionSlug, Set<number | string>>()
     for (const r of extract(merged)) {
@@ -73,12 +83,7 @@ export const sameTenantReferences =
         req,
         where: { and: [{ id: { in: [...ids] } }, { tenant: { equals: tenant } }] },
       })
-      if (totalDocs !== ids.size) {
-        throw new ValidationError({
-          collection: collection.slug,
-          errors: [{ message: `Links to ${slug} outside this site's tenant are not allowed.`, path: slug }],
-        })
-      }
+      if (totalDocs !== ids.size) refuse()
     }
     return data
   }

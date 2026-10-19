@@ -276,3 +276,19 @@ describe('review findings stay fixed', () => {
     expect(ctx.payload.collections['payload-locked-documents' as CollectionSlug]).toBeUndefined()
   })
 })
+
+describe('the same-tenant check covers every link field', () => {
+  // If this fails, a link field was added: add it to that collection's sameTenantReferences
+  // extractor (src/collections/*.ts), then update this list.
+  const covered: Record<string, string[]> = {
+    posts: ['tenant', 'featuredImage', 'categories', 'authors'],
+    authors: ['tenant', 'photo'],
+    categories: ['tenant'],
+    media: ['tenant'],
+  }
+  it.each(Object.keys(covered))('%s has no unchecked relationship or upload field', (slug) => {
+    const fields = ctx.payload.collections[slug as CollectionSlug].config.flattenedFields
+    const links = fields.filter((f) => f.type === 'relationship' || f.type === 'upload').map((f) => f.name)
+    expect(links.sort()).toEqual([...covered[slug]].sort())
+  })
+})

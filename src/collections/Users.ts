@@ -40,7 +40,7 @@ export const Users: CollectionConfig = {
       ({ data, originalDoc, req }) => {
         const touchesKey =
           data.enableAPIKey !== undefined && Boolean(data.enableAPIKey) !== Boolean(originalDoc?.enableAPIKey)
-        if ((touchesKey || data.apiKey) && roleOf(req) !== 'admin' && req.user) {
+        if ((touchesKey || data.apiKey || data.apiKeyIndex) && roleOf(req) !== 'admin' && req.user) {
           throw new APIError('Only an admin can manage API keys.', 403, undefined, true)
         }
         return data
