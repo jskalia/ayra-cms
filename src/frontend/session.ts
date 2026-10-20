@@ -2,20 +2,18 @@ import 'server-only'
 
 import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
-import { getPayload, type Payload, type TypedUser } from 'payload'
+import { getPayload } from 'payload'
 
 import config from '../../payload.config'
+import type { Session } from './access'
+
+export { as, type Session } from './access'
 
 /**
  * The control room's session: the person signed in to the CMS (same sign-in as /admin).
  * Every read below passes this user with overrideAccess: false, so a viewer only ever sees
  * the sites assigned to them, and nobody can change content from here (S-1).
  */
-export type Session = {
-  payload: Payload
-  user: TypedUser & { id: number | string; name?: string; email?: string; role?: string }
-  isAdmin: boolean
-}
 
 export async function requireSession(path: string): Promise<Session> {
   const payload = await getPayload({ config })
@@ -27,6 +25,3 @@ export async function requireSession(path: string): Promise<Session> {
   }
   return { payload, user: user as Session['user'], isAdmin: role === 'admin' }
 }
-
-/** Read options that keep every query inside the signed-in person's permissions. */
-export const as = (s: Session) => ({ overrideAccess: false as const, user: s.user })

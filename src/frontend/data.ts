@@ -1,8 +1,6 @@
-import 'server-only'
-
 import type { CollectionSlug } from 'payload'
 
-import { as, type Session } from './session'
+import { as, type Session } from './access'
 
 /** Collections shown per site, in the order the control room lists them. */
 export const SITE_COLLECTIONS: { slug: CollectionSlug; label: string }[] = [

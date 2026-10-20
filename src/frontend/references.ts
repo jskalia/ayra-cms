@@ -1,10 +1,8 @@
-import 'server-only'
-
 import path from 'node:path'
 import type { CollectionSlug } from 'payload'
 
 import { collectRefs } from '../hooks/pageReferences'
-import { as, type Session } from './session'
+import { as, type Session } from './access'
 
 type Doc = Record<string, any>
 
