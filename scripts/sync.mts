@@ -6,13 +6,19 @@
  *   SYNC_API_KEY=… npm run sync -- --ops <path to _<org>_ops> --site <site> --tenant <tenant> \
  *     --cms https://cms.ayraagent.ai [--dry-run] [--schemas <folder with claims/atoms schemas>] [--actor <name>]
  *
- * Exit codes: 0 done (or dry run planned), 1 refused or failed, 2 usage.
+ *   Verify the site still matches a receipt:   … --verify <receipt id | path to receipt .json>
+ *   Roll back to an earlier _ops commit:       … --at <git commit>   (add --dry-run to preview)
+ *
+ * Exit codes: 0 done (or dry run planned, or verified), 1 refused, failed or mismatched, 2 usage.
  */
 import os from 'node:os'
 import path from 'node:path'
 
+import { existsSync, readFileSync, rmSync } from 'node:fs'
+
 import { RestClient } from '../src/sync/client'
 import { runSync } from '../src/sync/run'
+import { snapshotAt, verifyReceipt, type Receipt } from '../src/sync/verify'
 
 const args = process.argv.slice(2)
 const flag = (name: string) => args.includes(`--${name}`)
@@ -31,16 +37,40 @@ if (!ops || !site || !tenant || !cms || !apiKey) {
   process.exit(2)
 }
 
+const client = new RestClient(cms, apiKey)
+const orgRoot = path.resolve(ops)
+
+const verify = value('verify')
+if (verify) {
+  let receipt: Receipt | undefined
+  if (existsSync(verify)) receipt = JSON.parse(readFileSync(verify, 'utf8'))
+  else receipt = (await client.receipt(await client.tenantId(tenant), verify)) as Receipt | undefined
+  if (!receipt) {
+    console.error(`receipt not found: ${verify}`)
+    process.exit(1)
+  }
+  const v = await verifyReceipt(client, tenant, receipt)
+  console.log(`${v.ok ? 'MATCHES' : 'DIFFERS'}: receipt ${v.receiptId} — ${v.matched} match, ${v.changed.length} changed, ${v.missing.length} missing`)
+  for (const c of v.changed) console.log(`  changed ${c.collection.padEnd(13)} ${c.recordId}`)
+  for (const m of v.missing) console.log(`  missing ${m.collection.padEnd(13)} ${m.recordId}`)
+  process.exit(v.ok ? 0 : 1)
+}
+
+const at = value('at')
+const snapshot = at ? snapshotAt(orgRoot, at) : undefined
 const result = await runSync({
-  orgRoot: path.resolve(ops),
+  orgRoot: snapshot ?? orgRoot,
+  receiptRoot: orgRoot,
+  opsCommit: at,
   site,
   tenant,
-  client: new RestClient(cms, apiKey),
+  client,
   actor: value('actor') ?? os.userInfo().username,
   dryRun: flag('dry-run'),
   schemasDir: value('schemas'),
 })
 
+if (snapshot) rmSync(snapshot, { recursive: true, force: true })
 if (result.problems.length) {
   console.error(`REFUSED: ${result.problems.length} problem(s); nothing was written.`)
   for (const p of result.problems) console.error(`  - ${p}`)

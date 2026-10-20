@@ -44,6 +44,10 @@ export type SyncOptions = {
   schemasDir?: string
   /** Write the receipt back into _ops (default true; off in some tests). */
   receiptToOps?: boolean
+  /** Where the receipt goes in _ops when reading from a snapshot (rollback): the real org folder. */
+  receiptRoot?: string
+  /** The _ops commit the snapshot was taken at (rollback). */
+  opsCommit?: string
   now?: () => Date
 }
 
@@ -121,13 +125,13 @@ export async function runSync(opts: SyncOptions): Promise<SyncResult> {
   const receipt = {
     receiptId, revision, status: error ? 'failed' : 'ok', tenant,
     startedAt: startedAt.toISOString(), finishedAt: now().toISOString(), actor: opts.actor,
-    sourceRoot: opts.orgRoot, opsCommit: opsCommit(opts.orgRoot),
+    sourceRoot: opts.receiptRoot ?? opts.orgRoot, opsCommit: opts.opsCommit ?? opsCommit(opts.orgRoot),
     counts: countOf(done), items: done, orphans, error,
   }
   await opts.client.createReceipt(receipt)
   let receiptPath: string | undefined
   if (opts.receiptToOps !== false) {
-    const dir = path.join(opts.orgRoot, 'marketing', 'receipts', 'sync', opts.site)
+    const dir = path.join(opts.receiptRoot ?? opts.orgRoot, 'marketing', 'receipts', 'sync', opts.site)
     mkdirSync(dir, { recursive: true })
     receiptPath = path.join(dir, `${receiptId}.json`)
     writeFileSync(receiptPath, JSON.stringify(receipt, null, 2) + '\n')

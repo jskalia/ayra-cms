@@ -19,6 +19,7 @@ export interface CmsClient {
   update(collection: SyncCollection, id: number | string, data: Record<string, unknown>, file?: SyncRecord['file']): Promise<void>
   lastRevision(tenant: number | string): Promise<number>
   createReceipt(data: ReceiptData): Promise<void>
+  receipt(tenant: number | string, receiptId: string): Promise<ReceiptData | undefined>
 }
 
 type Doc = { id: number | string; recordId?: string; sync?: { sourceSha256?: string }; revision?: number }
@@ -64,6 +65,13 @@ export class LocalClient implements CmsClient {
   }
   async createReceipt(data: ReceiptData) {
     await this.payload.create({ collection: 'sync-receipts', ...this.opts, data: data as never })
+  }
+  async receipt(tenant: number | string, receiptId: string) {
+    const { docs } = await this.payload.find({
+      collection: 'sync-receipts', ...this.opts, depth: 0, limit: 1,
+      where: { and: [{ tenant: { equals: tenant } }, { receiptId: { equals: receiptId } }] },
+    })
+    return docs[0] as unknown as ReceiptData | undefined
   }
 }
 
@@ -122,5 +130,9 @@ export class RestClient implements CmsClient {
   }
   async createReceipt(data: ReceiptData) {
     await this.call('POST', '/sync-receipts', JSON.stringify(data))
+  }
+  async receipt(tenant: number | string, receiptId: string) {
+    const res = await this.call('GET', `/sync-receipts?where[tenant][equals]=${tenant}&where[receiptId][equals]=${encodeURIComponent(receiptId)}&limit=1&depth=0`)
+    return res.docs?.[0] as ReceiptData | undefined
   }
 }
