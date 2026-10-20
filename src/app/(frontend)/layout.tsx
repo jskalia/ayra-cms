@@ -2,13 +2,14 @@ import type { Metadata } from 'next'
 import React from 'react'
 
 import '../globals.css'
+import './control-room.css'
 
 export const metadata: Metadata = {
   title: {
-    default: 'AyraAgent CMS',
-    template: '%s | AyraAgent CMS',
+    default: 'Ayra CMS',
+    template: '%s · Ayra CMS',
   },
-  description: 'Content service for ayraagent.ai and heyayra.ai.',
+  description: 'The control room for every site’s content: what each site holds, where it came from, and what needs attention.',
   robots: { index: false, follow: false },
 }
 
