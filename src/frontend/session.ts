@@ -16,8 +16,11 @@ export { as, type Session } from './access'
  */
 
 export async function requireSession(path: string): Promise<Session> {
+  // Read the request first: it marks the page as per-request before anything touches the
+  // database, so a build with no database (CI) never tries to prerender it.
+  const requestHeaders = await headers()
   const payload = await getPayload({ config })
-  const { user } = await payload.auth({ headers: await headers() })
+  const { user } = await payload.auth({ headers: requestHeaders })
   const role = (user as { role?: string } | null)?.role
   // Website and sync accounts never sign in with a password, but check anyway.
   if (!user || (role !== 'admin' && role !== 'editor')) {
