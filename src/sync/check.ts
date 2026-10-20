@@ -21,15 +21,24 @@ const isPublicRecord: Record<string, (d: Record<string, unknown>) => boolean> = 
   atoms: (d) => d.visibility === 'public' && d.status === 'active',
   media: (d) => d.status === 'approved',
   products: (d) => d.released === true,
+  decks: (d) => d.status === 'approved' && (!d.gate || d.gate === 'none'),
+  legal: (d) => d.status === 'published' || d.status === 'superseded',
+  'trust-documents': () => false,
+  audiences: (d) => d.visibility === 'public' && d.status === 'active',
+  workflows: (d) => d.visibility === 'public' && d.status === 'active',
 }
-const kindToCollection: Record<string, string> = { claim: 'claims', atom: 'atoms', asset: 'media', product: 'products' }
+const kindToCollection: Record<string, string> = {
+  claim: 'claims', atom: 'atoms', asset: 'media', product: 'products',
+  deck: 'decks', legal: 'legal', trustdoc: 'trust-documents', audience: 'audiences', workflow: 'workflows',
+}
 
 /** Which records are "live" and which values may hold citations, per collection. */
 const citing: Record<string, { live: (d: Record<string, unknown>) => boolean; isPublic: (d: Record<string, unknown>) => boolean; values: (d: Record<string, unknown>) => unknown[] }> = {
-  pages: { live: (d) => d.status === 'approved', isPublic: (d) => d.visibility === 'public', values: (d) => [d.product, d.blocks, d.seo, d.bodyMarkdown] },
+  pages: { live: (d) => d.status === 'approved', isPublic: (d) => d.visibility === 'public' && (!d.gate || d.gate === 'none'), values: (d) => [d.product, d.blocks, d.seo, d.bodyMarkdown] },
   posts: { live: (d) => d.status === 'approved', isPublic: (d) => d.visibility === 'public', values: (d) => [d.heroAsset, d.cites, d.seo, d.bodyMarkdown] },
   'whats-new': { live: (d) => d.status === 'approved' || d.status === 'published', isPublic: (d) => d.visibility === 'public', values: (d) => [d.product, d.whatShipped, d.regulated, d.assets] },
   atoms: { live: (d) => d.status === 'active', isPublic: (d) => d.visibility === 'public', values: (d) => [d.claims, d.assets, d.shape] },
+  legal: { live: (d) => d.status === 'published' || d.status === 'superseded', isPublic: () => true, values: (d) => [d.bodyMarkdown] },
 }
 
 export function checkSnapshot(records: SyncRecord[]): string[] {
@@ -53,6 +62,10 @@ export function checkSnapshot(records: SyncRecord[]): string[] {
     }
     if (r.collection === 'posts' && d.status === 'approved' && !((d.author ?? {}) as Record<string, unknown>).name) {
       problems.push(`${at(r)}: an approved post names a real author`)
+    }
+    if (r.collection === 'legal') {
+      if (!d.version) problems.push(`${at(r)}: a legal page gives its version`)
+      if (d.status === 'published' && !d.effectiveAt) problems.push(`${at(r)}: a published legal page gives effective_at`)
     }
     // vocabulary
     const text = JSON.stringify(d)

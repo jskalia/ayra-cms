@@ -11,6 +11,7 @@
  *     products/<p>/atoms.json                    → atoms
  *     products/<p>/assets.index.json + files     → media        (index format ASSUMED)
  *     releases/<yyyy>-<slug>/release.md          → whats-new    (only releases listing this site)
+ *     channels/web/<site>/legal/<type>.md        → legal        (the current published version)
  *
  * Reading never writes anything. Every record carries its source path and a sha256 of its
  * canonical content, so the writer can skip unchanged records and a receipt can be verified.
@@ -20,10 +21,10 @@ import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs'
 import path from 'node:path'
 import { parse as parseYaml } from 'yaml'
 
-export type SyncCollection = 'site-settings' | 'products' | 'claims' | 'atoms' | 'media' | 'pages' | 'posts' | 'whats-new'
+export type SyncCollection = 'site-settings' | 'products' | 'claims' | 'atoms' | 'media' | 'legal' | 'pages' | 'posts' | 'whats-new'
 
 /** The order records are written in, so every citation already exists when it is checked. */
-export const WRITE_ORDER: SyncCollection[] = ['site-settings', 'products', 'media', 'claims', 'atoms', 'pages', 'posts', 'whats-new']
+export const WRITE_ORDER: SyncCollection[] = ['site-settings', 'products', 'media', 'claims', 'atoms', 'legal', 'pages', 'posts', 'whats-new']
 
 export type SyncRecord = {
   collection: SyncCollection
@@ -175,6 +176,18 @@ const seo = (s: Record<string, unknown> = {}) => ({
 })
 const approval = (a: Record<string, unknown> = {}) => ({
   by: a.by ?? undefined, at: a.at === undefined || a.at === null ? undefined : String(a.at), version: a.version === undefined || a.version === null ? undefined : String(a.version),
+})
+
+export const mapLegal = (m: Record<string, unknown>, body: string, type: string) => ({
+  recordId: `legal:${type}@${m.version}`,
+  type,
+  version: m.version === undefined ? undefined : String(m.version),
+  effectiveAt: m.effective_at === undefined ? undefined : String(m.effective_at),
+  status: m.status ?? 'published', // records/ holds the published text (web-legal-update.md)
+  material: m.material === true,
+  changeSummary: m.change_summary,
+  approvalRecordId: m.approval_record_id,
+  bodyMarkdown: body,
 })
 
 export const mapPage = (m: Record<string, unknown>, body: string) => ({
@@ -347,6 +360,16 @@ export function readOps(orgRoot: string, site: string): ReadResult {
     attempt(p, () => {
       const { meta, body } = frontMatter(readFileSync(p, 'utf8'))
       add('posts', p, mapPost(meta, body, f.replace(/\.md$/, '')))
+    })
+  }
+
+  // Legal pages: the current published version of each type
+  const legalDir = path.join(webDir, 'legal')
+  for (const f of files(legalDir, '.md')) {
+    const p = path.join(legalDir, f)
+    attempt(p, () => {
+      const { meta, body } = frontMatter(readFileSync(p, 'utf8'))
+      add('legal', p, mapLegal(meta, body, f.replace(/\.md$/, '')))
     })
   }
 

@@ -78,6 +78,12 @@ export interface Config {
     pages: Page;
     'whats-new': WhatsNew;
     'sync-receipts': SyncReceipt;
+    legal: Legal;
+    decks: Deck;
+    'trust-documents': TrustDocument;
+    'consent-records': ConsentRecord;
+    audiences: Audience;
+    workflows: Workflow;
     'payload-kv': PayloadKv;
     'payload-preferences': PayloadPreference;
     'payload-migrations': PayloadMigration;
@@ -95,6 +101,12 @@ export interface Config {
     pages: PagesSelect<false> | PagesSelect<true>;
     'whats-new': WhatsNewSelect<false> | WhatsNewSelect<true>;
     'sync-receipts': SyncReceiptsSelect<false> | SyncReceiptsSelect<true>;
+    legal: LegalSelect<false> | LegalSelect<true>;
+    decks: DecksSelect<false> | DecksSelect<true>;
+    'trust-documents': TrustDocumentsSelect<false> | TrustDocumentsSelect<true>;
+    'consent-records': ConsentRecordsSelect<false> | ConsentRecordsSelect<true>;
+    audiences: AudiencesSelect<false> | AudiencesSelect<true>;
+    workflows: WorkflowsSelect<false> | WorkflowsSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
     'payload-migrations': PayloadMigrationsSelect<false> | PayloadMigrationsSelect<true>;
@@ -1587,6 +1599,288 @@ export interface SyncReceipt {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "legal".
+ */
+export interface Legal {
+  id: number;
+  tenant?: (number | null) | Tenant;
+  /**
+   * The record's id in _ops (legal:…). Unique within a site; never changes.
+   */
+  recordId: string;
+  /**
+   * privacy · terms · cookie · accessibility · eula · baa · hipaa · ifu-<device> · disclosure · aup · subprocessors · ai-transparency · consumer-health-privacy
+   */
+  type: string;
+  version: string;
+  /**
+   * yyyy-mm-dd
+   */
+  effectiveAt?: string | null;
+  status: 'draft' | 'approved' | 'published' | 'superseded';
+  /**
+   * A material change needs 30 days’ notice (L-6).
+   */
+  material?: boolean | null;
+  changeSummary?: string | null;
+  /**
+   * The ComplianceOps revision record.
+   */
+  approvalRecordId?: string | null;
+  body?: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  } | null;
+  /**
+   * Markdown from the _ops record; the body is generated from it.
+   */
+  bodyMarkdown?: string | null;
+  /**
+   * Written by the _ops sync.
+   */
+  sync?: {
+    /**
+     * Path of the source record in _ops.
+     */
+    sourcePath?: string | null;
+    sourceSha256?: string | null;
+    /**
+     * Id of the sync receipt that wrote this version.
+     */
+    receipt?: string | null;
+    syncedAt?: string | null;
+  };
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "decks".
+ */
+export interface Deck {
+  id: number;
+  tenant?: (number | null) | Tenant;
+  /**
+   * The record's id in _ops (deck:…). Unique within a site; never changes.
+   */
+  recordId: string;
+  title: string;
+  summary?: string | null;
+  /**
+   * Where the built web deck lives (path or URL), from deckkit.
+   */
+  source?: string | null;
+  /**
+   * asset:<org>/<kind>/<id>@<v> (share preview).
+   */
+  coverAsset?: string | null;
+  gate: 'none' | 'investor' | 'partner';
+  status: 'draft' | 'approved' | 'retired';
+  /**
+   * Written by the _ops sync.
+   */
+  sync?: {
+    /**
+     * Path of the source record in _ops.
+     */
+    sourcePath?: string | null;
+    sourceSha256?: string | null;
+    /**
+     * Id of the sync receipt that wrote this version.
+     */
+    receipt?: string | null;
+    syncedAt?: string | null;
+  };
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "trust-documents".
+ */
+export interface TrustDocument {
+  id: number;
+  tenant?: (number | null) | Tenant;
+  /**
+   * The record's id in _ops (trustdoc:…). Unique within a site; never changes.
+   */
+  recordId: string;
+  title: string;
+  /**
+   * e.g. soc2-report, pen-test-summary, policy
+   */
+  type?: string | null;
+  version?: string | null;
+  /**
+   * yyyy-mm-dd
+   */
+  effectiveAt?: string | null;
+  /**
+   * Position that owns the document.
+   */
+  owner?: string | null;
+  sourceSha256?: string | null;
+  status: 'draft' | 'approved' | 'superseded' | 'retired';
+  /**
+   * Written by the _ops sync.
+   */
+  sync?: {
+    /**
+     * Path of the source record in _ops.
+     */
+    sourcePath?: string | null;
+    sourceSha256?: string | null;
+    /**
+     * Id of the sync receipt that wrote this version.
+     */
+    receipt?: string | null;
+    syncedAt?: string | null;
+  };
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "consent-records".
+ */
+export interface ConsentRecord {
+  id: number;
+  tenant?: (number | null) | Tenant;
+  anonymousId: string;
+  /**
+   * Category → true/false, e.g. {"analytics": false, "marketing": false}.
+   */
+  choices:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  policyVersion: string;
+  /**
+   * Global Privacy Control signal was present.
+   */
+  gpc?: boolean | null;
+  /**
+   * Which default applied (W9.0).
+   */
+  region?: ('us' | 'eu-uk' | 'other') | null;
+  recordedAt: string;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "audiences".
+ */
+export interface Audience {
+  id: number;
+  tenant?: (number | null) | Tenant;
+  /**
+   * The record's id in _ops (audience:…). Unique within a site; never changes.
+   */
+  recordId: string;
+  name: string;
+  summary?: string | null;
+  /**
+   * Websites only ever see public records (G-SITE-7).
+   */
+  visibility: 'public' | 'internal' | 'investor-only';
+  status: 'active' | 'deprecated' | 'retired';
+  /**
+   * The rest of the record, as synced.
+   */
+  record?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  /**
+   * Written by the _ops sync.
+   */
+  sync?: {
+    /**
+     * Path of the source record in _ops.
+     */
+    sourcePath?: string | null;
+    sourceSha256?: string | null;
+    /**
+     * Id of the sync receipt that wrote this version.
+     */
+    receipt?: string | null;
+    syncedAt?: string | null;
+  };
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "workflows".
+ */
+export interface Workflow {
+  id: number;
+  tenant?: (number | null) | Tenant;
+  /**
+   * The record's id in _ops (workflow:…). Unique within a site; never changes.
+   */
+  recordId: string;
+  name: string;
+  summary?: string | null;
+  /**
+   * Websites only ever see public records (G-SITE-7).
+   */
+  visibility: 'public' | 'internal' | 'investor-only';
+  status: 'active' | 'deprecated' | 'retired';
+  /**
+   * The rest of the record, as synced.
+   */
+  record?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  /**
+   * Written by the _ops sync.
+   */
+  sync?: {
+    /**
+     * Path of the source record in _ops.
+     */
+    sourcePath?: string | null;
+    sourceSha256?: string | null;
+    /**
+     * Id of the sync receipt that wrote this version.
+     */
+    receipt?: string | null;
+    syncedAt?: string | null;
+  };
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-kv".
  */
 export interface PayloadKv {
@@ -2357,6 +2651,143 @@ export interface SyncReceiptsSelect<T extends boolean = true> {
   items?: T;
   orphans?: T;
   error?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "legal_select".
+ */
+export interface LegalSelect<T extends boolean = true> {
+  tenant?: T;
+  recordId?: T;
+  type?: T;
+  version?: T;
+  effectiveAt?: T;
+  status?: T;
+  material?: T;
+  changeSummary?: T;
+  approvalRecordId?: T;
+  body?: T;
+  bodyMarkdown?: T;
+  sync?:
+    | T
+    | {
+        sourcePath?: T;
+        sourceSha256?: T;
+        receipt?: T;
+        syncedAt?: T;
+      };
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "decks_select".
+ */
+export interface DecksSelect<T extends boolean = true> {
+  tenant?: T;
+  recordId?: T;
+  title?: T;
+  summary?: T;
+  source?: T;
+  coverAsset?: T;
+  gate?: T;
+  status?: T;
+  sync?:
+    | T
+    | {
+        sourcePath?: T;
+        sourceSha256?: T;
+        receipt?: T;
+        syncedAt?: T;
+      };
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "trust-documents_select".
+ */
+export interface TrustDocumentsSelect<T extends boolean = true> {
+  tenant?: T;
+  recordId?: T;
+  title?: T;
+  type?: T;
+  version?: T;
+  effectiveAt?: T;
+  owner?: T;
+  sourceSha256?: T;
+  status?: T;
+  sync?:
+    | T
+    | {
+        sourcePath?: T;
+        sourceSha256?: T;
+        receipt?: T;
+        syncedAt?: T;
+      };
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "consent-records_select".
+ */
+export interface ConsentRecordsSelect<T extends boolean = true> {
+  tenant?: T;
+  anonymousId?: T;
+  choices?: T;
+  policyVersion?: T;
+  gpc?: T;
+  region?: T;
+  recordedAt?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "audiences_select".
+ */
+export interface AudiencesSelect<T extends boolean = true> {
+  tenant?: T;
+  recordId?: T;
+  name?: T;
+  summary?: T;
+  visibility?: T;
+  status?: T;
+  record?: T;
+  sync?:
+    | T
+    | {
+        sourcePath?: T;
+        sourceSha256?: T;
+        receipt?: T;
+        syncedAt?: T;
+      };
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "workflows_select".
+ */
+export interface WorkflowsSelect<T extends boolean = true> {
+  tenant?: T;
+  recordId?: T;
+  name?: T;
+  summary?: T;
+  visibility?: T;
+  status?: T;
+  record?: T;
+  sync?:
+    | T
+    | {
+        sourcePath?: T;
+        sourceSha256?: T;
+        receipt?: T;
+        syncedAt?: T;
+      };
   updatedAt?: T;
   createdAt?: T;
 }

@@ -18,6 +18,11 @@ const KIND: Record<string, { collection: CollectionSlug; isPublic: (d: Doc) => b
   atom: { collection: 'atoms', isPublic: (d) => d.visibility === 'public' && d.status === 'active' },
   asset: { collection: 'media', isPublic: (d) => d.status === 'approved' },
   product: { collection: 'products', isPublic: (d) => d.released === true },
+  deck: { collection: 'decks', isPublic: (d) => d.status === 'approved' && d.gate === 'none' },
+  legal: { collection: 'legal', isPublic: (d) => d.status === 'published' || d.status === 'superseded' },
+  trustdoc: { collection: 'trust-documents', isPublic: () => false },
+  audience: { collection: 'audiences', isPublic: (d) => d.visibility === 'public' && d.status === 'active' },
+  workflow: { collection: 'workflows', isPublic: (d) => d.visibility === 'public' && d.status === 'active' },
 }
 
 export type ResolvedRef = { ref: string; found: boolean; isPublic: boolean; href?: string }

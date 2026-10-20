@@ -61,12 +61,14 @@ export default async function ReceiptPage({ params }: { params: Promise<{ id: st
           <h2 id="h-changes">What changed</h2>
           {r.error && <p className="cr-error">Stopped at: {r.error}</p>}
           <div className="cr-stats">
-            {(['create', 'update', 'unchanged'] as const).map((k) => (
-              <div className="cr-stat" key={k}>
-                <b>{r.counts?.[k] ?? 0}</b>
-                <span>{k === 'create' ? 'created' : k === 'update' ? 'updated' : 'unchanged'}</span>
-              </div>
-            ))}
+            {(['create', 'update', 'supersede', 'unchanged'] as const)
+              .filter((k) => k !== 'supersede' || r.counts?.supersede)
+              .map((k) => (
+                <div className="cr-stat" key={k}>
+                  <b>{r.counts?.[k] ?? 0}</b>
+                  <span>{{ create: 'created', update: 'updated', supersede: 'superseded', unchanged: 'unchanged' }[k]}</span>
+                </div>
+              ))}
             <div className="cr-stat">
               <b>{r.orphans?.length ?? 0}</b>
               <span>not in _ops</span>

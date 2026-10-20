@@ -20,7 +20,7 @@ import { checkSchemas, checkSnapshot } from './check'
 import type { CmsClient } from './client'
 import { readOps, WRITE_ORDER, type SyncCollection, type SyncRecord } from './read'
 
-export type Action = 'create' | 'update' | 'unchanged'
+export type Action = 'create' | 'update' | 'unchanged' | 'supersede'
 export type Item = { collection: SyncCollection; recordId: string; sourcePath: string; sha256: string; action: Action }
 export type SyncResult = {
   ok: boolean
@@ -59,7 +59,7 @@ const opsCommit = (orgRoot: string) => {
   }
 }
 const countOf = (items: Item[]) =>
-  items.reduce((c, i) => ({ ...c, [i.action]: c[i.action] + 1 }), { create: 0, update: 0, unchanged: 0 } as Record<Action, number>)
+  items.reduce((c, i) => ({ ...c, [i.action]: c[i.action] + 1 }), { create: 0, update: 0, unchanged: 0, supersede: 0 } as Record<Action, number>)
 
 export async function runSync(opts: SyncOptions): Promise<SyncResult> {
   const now = opts.now ?? (() => new Date())
@@ -79,6 +79,7 @@ export async function runSync(opts: SyncOptions): Promise<SyncResult> {
   const tenant = await opts.client.tenantId(opts.tenant)
   const plan: { record: SyncRecord; action: Action; id?: number | string }[] = []
   const orphans: SyncResult['orphans'] = []
+  const planProblems: string[] = []
   for (const collection of WRITE_ORDER) {
     const existing = await opts.client.existing(collection, tenant)
     const mine = records.filter((r) => r.collection === collection)
@@ -87,8 +88,35 @@ export async function runSync(opts: SyncOptions): Promise<SyncResult> {
       plan.push({ record, id: found?.id, action: !found ? 'create' : found.sha === record.sha256 ? 'unchanged' : 'update' })
     }
     const ids = new Set(mine.map((r) => r.recordId))
-    for (const recordId of existing.keys()) if (!ids.has(recordId)) orphans.push({ collection, recordId })
+    // Legal: publishing a NEW version supersedes the previous published one (a status change only;
+    // it stays readable at its archive URL), first, then the new version is created. A version
+    // already in the CMS supersedes nothing, so an older snapshot (rollback) never un-publishes the
+    // current text. A published or superseded version never changes: changed text is refused here,
+    // before anything is written, and superseded versions are the archive, not orphans.
+    const notOrphans = new Set<string>() // superseded versions: the archive
+    if (collection === 'legal') {
+      for (const r of mine) {
+        const e = existing.get(r.recordId)
+        if (e && e.sha !== r.sha256 && (e.status === 'published' || e.status === 'superseded')) {
+          planProblems.push(`${r.sourcePath} ${r.recordId}: this version is already published and never changes; publish a new version`)
+        }
+      }
+      const publishedTypes = new Set(mine.filter((r) => r.data.status === 'published' && !existing.has(r.recordId)).map((r) => String(r.data.type)))
+      for (const [recordId, e] of existing) {
+        if (e.status === 'superseded') notOrphans.add(recordId)
+        if (!ids.has(recordId) && e.status === 'published' && e.type && publishedTypes.has(e.type)) {
+          notOrphans.add(recordId)
+          plan.splice(plan.length - mine.length, 0, {
+            record: { collection, recordId, sourcePath: '(superseded by a newer version)', sha256: e.sha ?? '', data: { status: 'superseded' } },
+            id: e.id,
+            action: 'supersede',
+          })
+        }
+      }
+    }
+    for (const recordId of existing.keys()) if (!ids.has(recordId) && !notOrphans.has(recordId)) orphans.push({ collection, recordId })
   }
+  if (planProblems.length) return empty(planProblems)
   const item = (p: (typeof plan)[number]): Item => ({
     collection: p.record.collection, recordId: p.record.recordId, sourcePath: p.record.sourcePath, sha256: p.record.sha256, action: p.action,
   })
@@ -107,14 +135,17 @@ export async function runSync(opts: SyncOptions): Promise<SyncResult> {
       done.push(item(p))
       continue
     }
-    const data = {
-      ...p.record.data,
-      tenant,
-      sync: { sourcePath: p.record.sourcePath, sourceSha256: p.record.sha256, receipt: receiptId, syncedAt: now().toISOString() },
-    }
+    const data =
+      p.action === 'supersede'
+        ? { status: 'superseded' } // nothing else about a published legal version ever changes
+        : {
+            ...p.record.data,
+            tenant,
+            sync: { sourcePath: p.record.sourcePath, sourceSha256: p.record.sha256, receipt: receiptId, syncedAt: now().toISOString() },
+          }
     try {
       if (p.action === 'create') await opts.client.create(p.record.collection, data, p.record.file)
-      else await opts.client.update(p.record.collection, p.id!, data, p.record.file)
+      else await opts.client.update(p.record.collection, p.id!, data, p.action === 'supersede' ? undefined : p.record.file)
       done.push(item(p))
     } catch (err) {
       error = `${p.record.sourcePath} ${p.record.recordId}: ${err instanceof Error ? err.message : String(err)}`

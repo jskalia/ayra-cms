@@ -97,7 +97,7 @@ export default async function RecordPage({ params }: Props) {
       </p>
       <header className="cr-head">
         <div>
-          <h1>{doc.title ?? doc.name ?? doc.route ?? doc.recordId}</h1>
+          <h1>{doc.title ?? doc.name ?? doc.route ?? doc.recordId ?? doc.anonymousId}</h1>
           <div className="cr-meta">
             <span className="mono">{doc.recordId}</span>
             {pills.map((p) => (

@@ -33,7 +33,11 @@ export type Doc = { id: number | string; tenant?: unknown; [key: string]: unknow
 export type Ctx = { payload: Payload; users: Record<string, Doc>; tenantA: number; tenantB: number }
 export const ctx = {} as Ctx
 
-export const CONTENT: CollectionSlug[] = ['posts', 'media', 'products', 'claims', 'atoms', 'site-settings', 'pages', 'whats-new']
+export const CONTENT: CollectionSlug[] = [
+  'posts', 'media', 'products', 'claims', 'atoms', 'site-settings', 'pages', 'whats-new', 'legal', 'decks', 'audiences', 'workflows',
+]
+/** Per-site collections no website key may read (gated, or written by the site and read by people). */
+export const NOT_FOR_WEBSITES: CollectionSlug[] = ['trust-documents', 'consent-records']
 
 export const PNG = Buffer.from(
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
@@ -152,6 +156,21 @@ export async function setup(): Promise<void> {
       whatShipped: ['claim:public-001'], features: [{ name: 'Beta thing', state: 'beta' }], source: { type: 'manual', ref: 'internal-ref' },
     })
     await create('whats-new', { recordId: `release:org${t}/2026-internal-note`, status: 'approved', visibility: 'internal', whatShipped: ['claim:internal-001'] })
+    await create('legal', { recordId: 'legal:privacy@1', type: 'privacy', version: '1', effectiveAt: '2026-10-01', status: 'published', bodyMarkdown: `Privacy ${t}.` })
+    await create('legal', { recordId: 'legal:terms@1', type: 'terms', version: '1', status: 'draft', bodyMarkdown: `Terms draft ${t}.` })
+    await create('decks', { recordId: 'deck:overview', title: `Overview ${t}`, gate: 'none', status: 'approved', coverAsset: `asset:org${t}/screen/img-approved@1` })
+    await create('decks', { recordId: 'deck:investor-2026', title: `Investors ${t}`, gate: 'investor', status: 'approved' })
+    await create('trust-documents', { recordId: 'trustdoc:soc2-report', title: `SOC 2 ${t}`, type: 'soc2-report', version: '1', status: 'approved' })
+    await create('audiences', { recordId: 'audience:clinics', name: `Clinics ${t}`, visibility: 'public', status: 'active' })
+    await create('audiences', { recordId: 'audience:internal-ops', name: `Ops ${t}`, visibility: 'internal', status: 'active' })
+    await create('workflows', { recordId: 'workflow:triage', name: `Triage ${t}`, visibility: 'public', status: 'active' })
+    await create('workflows', { recordId: 'workflow:old', name: `Old ${t}`, visibility: 'public', status: 'retired' })
+  }
+  for (const [who, tenant] of [['readerA', ctx.tenantA], ['readerB', ctx.tenantB]] as const) {
+    await ctx.payload.create({
+      collection: 'consent-records', ...asUser(who),
+      data: { tenant, anonymousId: `anon-${who}-0123456789`, choices: { analytics: false, marketing: false }, policyVersion: 'cookie@1', region: 'us' } as never,
+    })
   }
 }
 

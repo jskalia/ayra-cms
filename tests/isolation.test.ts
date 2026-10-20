@@ -2,13 +2,16 @@
 import type { CollectionSlug } from 'payload'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
-import { CONTENT, asUser, ctx, lexical, lexicalUpload, setup, teardown, tenantOf, visible } from './setup'
+import { CONTENT, NOT_FOR_WEBSITES, asUser, ctx, lexical, lexicalUpload, setup, teardown, tenantOf, visible } from './setup'
 
 beforeAll(setup, 180_000)
 afterAll(teardown)
 
 describe('anonymous requests', () => {
   it.each(CONTENT)('cannot read %s', async (collection) => {
+    expect(await visible(collection, null)).toEqual([])
+  })
+  it.each(NOT_FOR_WEBSITES)('cannot read %s', async (collection) => {
     expect(await visible(collection, null)).toEqual([])
   })
   it('cannot read users or tenants', async () => {
@@ -22,6 +25,11 @@ describe('a website key (site-reader) sees only its own site', () => {
     const docs = await visible(collection, 'readerA')
     expect(docs.length).toBeGreaterThan(0)
     expect(docs.every((d) => tenantOf(d) === ctx.tenantA)).toBe(true)
+  })
+  it.each(NOT_FOR_WEBSITES)('%s: nothing at all, not even its own site', async (collection) => {
+    expect(await visible(collection, 'readerA')).toEqual([])
+    expect((await visible(collection, 'viewerA')).every((d) => tenantOf(d) === ctx.tenantA)).toBe(true)
+    expect((await visible(collection, 'viewerA')).length).toBeGreaterThan(0)
   })
   it('cannot open a site B post by id', async () => {
     const [b] = await visible('posts', 'readerB')
@@ -100,7 +108,7 @@ describe('the sync account writes only into its own site', () => {
 describe('structure guards', () => {
   // If this fails, a link field was added: cover it in that collection's sameTenantReferences
   // extractor, then update this list.
-  const covered: Record<string, string[]> = Object.fromEntries(CONTENT.map((c) => [c, ['tenant']]))
+  const covered: Record<string, string[]> = Object.fromEntries([...CONTENT, ...NOT_FOR_WEBSITES].map((c) => [c, ['tenant']]))
   it.each(Object.keys(covered))('%s has no unchecked relationship or upload field', (slug) => {
     const fields = ctx.payload.collections[slug as CollectionSlug].config.flattenedFields
     const links = fields.filter((f) => f.type === 'relationship' || f.type === 'upload').map((f) => f.name)

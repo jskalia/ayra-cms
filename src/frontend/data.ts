@@ -3,14 +3,21 @@ import type { CollectionSlug } from 'payload'
 import { as, type Session } from './access'
 
 /** Collections shown per site, in the order the control room lists them. */
-export const SITE_COLLECTIONS: { slug: CollectionSlug; label: string }[] = [
-  { slug: 'pages', label: 'Pages' },
-  { slug: 'posts', label: 'Posts' },
-  { slug: 'claims', label: 'Claims' },
-  { slug: 'atoms', label: 'Atoms' },
-  { slug: 'media', label: 'Assets' },
-  { slug: 'products', label: 'Products' },
-  { slug: 'whats-new', label: 'What’s New' },
+/** `always`: shown on the overview even when empty; the rest appear once a site has some. */
+export const SITE_COLLECTIONS: { slug: CollectionSlug; label: string; always?: true }[] = [
+  { slug: 'pages', label: 'Pages', always: true },
+  { slug: 'posts', label: 'Posts', always: true },
+  { slug: 'claims', label: 'Claims', always: true },
+  { slug: 'atoms', label: 'Atoms', always: true },
+  { slug: 'media', label: 'Assets', always: true },
+  { slug: 'products', label: 'Products', always: true },
+  { slug: 'whats-new', label: 'What’s New', always: true },
+  { slug: 'legal', label: 'Legal' },
+  { slug: 'decks', label: 'Decks' },
+  { slug: 'trust-documents', label: 'Trust docs' },
+  { slug: 'audiences', label: 'Audiences' },
+  { slug: 'workflows', label: 'Workflows' },
+  { slug: 'consent-records', label: 'Consent' },
 ]
 
 export type Receipt = {
@@ -20,7 +27,7 @@ export type Receipt = {
   status: 'ok' | 'failed'
   actor: string
   finishedAt: string
-  counts?: { create: number; update: number; unchanged: number }
+  counts?: { create: number; update: number; unchanged: number; supersede?: number }
   orphans?: { collection: string; recordId: string }[]
   error?: string | null
 }

@@ -45,7 +45,7 @@ describe('the sync, _ops → the demo site', () => {
     const before = await recordIds('claims', 'viewerDemo')
     const r = await sync({ dryRun: true })
     expect(r.ok).toBe(true)
-    expect(r.counts).toEqual({ create: 12, update: 0, unchanged: 0 })
+    expect(r.counts).toEqual({ create: 12, update: 0, unchanged: 0, supersede: 0 })
     expect(await recordIds('claims', 'viewerDemo')).toEqual(before)
     expect(r.receiptId).toBeUndefined()
   })
@@ -53,7 +53,7 @@ describe('the sync, _ops → the demo site', () => {
   it('the first run creates every record and files a receipt in the CMS and in _ops', async () => {
     const r = await sync()
     expect(r.ok).toBe(true)
-    expect(r.counts).toEqual({ create: 12, update: 0, unchanged: 0 })
+    expect(r.counts).toEqual({ create: 12, update: 0, unchanged: 0, supersede: 0 })
     expect(r.revision).toBe(1)
     const receipts = await visible('sync-receipts', 'viewerDemo')
     expect(receipts.map((x) => x.receiptId)).toEqual([r.receiptId])
@@ -90,7 +90,7 @@ describe('the sync, _ops → the demo site', () => {
   it('a second run changes nothing (idempotent)', async () => {
     const before = (await visible('claims', 'viewerDemo')).map((c) => [c.recordId, c.updatedAt])
     const r = await sync()
-    expect(r.counts).toEqual({ create: 0, update: 0, unchanged: 12 })
+    expect(r.counts).toEqual({ create: 0, update: 0, unchanged: 12, supersede: 0 })
     expect(r.revision).toBe(2)
     expect((await visible('claims', 'viewerDemo')).map((c) => [c.recordId, c.updatedAt])).toEqual(before)
   })

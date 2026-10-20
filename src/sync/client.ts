@@ -9,7 +9,7 @@ import type { CollectionSlug, Payload, TypedUser } from 'payload'
 
 import type { SyncCollection, SyncRecord } from './read'
 
-export type Existing = Map<string, { id: number | string; sha?: string }>
+export type Existing = Map<string, { id: number | string; sha?: string; status?: string; type?: string }>
 export type ReceiptData = Record<string, unknown>
 
 export interface CmsClient {
@@ -22,10 +22,14 @@ export interface CmsClient {
   receipt(tenant: number | string, receiptId: string): Promise<ReceiptData | undefined>
 }
 
-type Doc = { id: number | string; recordId?: string; sync?: { sourceSha256?: string }; revision?: number }
+type Doc = { id: number | string; recordId?: string; sync?: { sourceSha256?: string }; revision?: number; status?: string; type?: string }
 
 const toExisting = (docs: Doc[]): Existing =>
-  new Map(docs.filter((d) => d.recordId).map((d) => [String(d.recordId), { id: d.id, sha: d.sync?.sourceSha256 ?? undefined }]))
+  new Map(
+    docs
+      .filter((d) => d.recordId)
+      .map((d) => [String(d.recordId), { id: d.id, sha: d.sync?.sourceSha256 ?? undefined, status: d.status, type: d.type }]),
+  )
 
 export class LocalClient implements CmsClient {
   constructor(

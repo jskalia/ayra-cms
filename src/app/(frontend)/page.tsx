@@ -44,7 +44,7 @@ export default async function Overview() {
                 </div>
               </div>
               <div className="cr-stats">
-                {SITE_COLLECTIONS.map((c) => (
+                {SITE_COLLECTIONS.filter((c) => c.always || s.counts[c.slug] > 0).map((c) => (
                   <Link className="cr-stat" key={c.slug} href={`/sites/${s.slug}?tab=${c.slug}`}>
                     <b>{s.counts[c.slug]}</b>
                     <span>{c.label}</span>

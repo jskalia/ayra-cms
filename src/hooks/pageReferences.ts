@@ -15,9 +15,15 @@ const KINDS: Record<string, { collection: CollectionSlug; publicOnly: Where }> =
   atom: { collection: 'atoms', publicOnly: PUBLIC_ACTIVE },
   asset: { collection: 'media', publicOnly: { status: { equals: 'approved' } } },
   product: { collection: 'products', publicOnly: { released: { equals: true } } },
+  deck: { collection: 'decks', publicOnly: { and: [{ status: { equals: 'approved' } }, { gate: { equals: 'none' } }] } },
+  legal: { collection: 'legal', publicOnly: { status: { in: ['published', 'superseded'] } } },
+  // Trust documents are gated: never resolvable from a public, ungated page.
+  trustdoc: { collection: 'trust-documents', publicOnly: { id: { exists: false } } },
+  audience: { collection: 'audiences', publicOnly: PUBLIC_ACTIVE },
+  workflow: { collection: 'workflows', publicOnly: PUBLIC_ACTIVE },
 }
 // Anywhere in a string (prose included) or an object key; trailing punctuation is not part of the id.
-const REF = /\b(claim|atom|asset|product):[^\s"'<>,;()\[\]{}]+/gi
+const REF = /\b(claim|atom|asset|product|deck|legal|trustdoc|audience|workflow):[^\s"'<>,;()\[\]{}]+/gi
 const trim = (ref: string) => ref.replace(/[.,;:!?]+$/, '')
 
 /** Every claim:/atom:/asset:/product: reference anywhere inside a value (strings and keys). */
@@ -124,5 +130,7 @@ export const pageReferences = publicReferences({
   collect: (p) => [p.product, p.blocks, p.seo, p.body],
   uploads: (p) => richTextRefs(p.body),
   approved: (p) => p.status === 'approved',
-  isPublic: (p) => p.visibility === 'public',
+  // A gated page (investor, trust, partner) is shown behind sign-in, so it may cite gated
+  // records; a public, ungated page cites public records only.
+  isPublic: (p) => p.visibility === 'public' && (!p.gate || p.gate === 'none'),
 })

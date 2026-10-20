@@ -20,6 +20,11 @@ export const RECORD_ID_PATTERNS: Record<string, RegExp> = {
   'post:': new RegExp(`^post:${SLUG}$`),
   'release:': new RegExp(`^release:${SLUG}/[0-9]{4}-${SLUG}$`),
   'site:': new RegExp(`^site:${SLUG}$`),
+  'legal:': new RegExp(`^legal:${SLUG}@[0-9][0-9.]*$`),
+  'deck:': new RegExp(`^deck:${SLUG}$`),
+  'trustdoc:': new RegExp(`^trustdoc:${SLUG}$`),
+  'audience:': new RegExp(`^audience:${SLUG}$`),
+  'workflow:': new RegExp(`^workflow:${SLUG}$`),
 }
 
 export const recordIdField = (prefix: string): Field => ({

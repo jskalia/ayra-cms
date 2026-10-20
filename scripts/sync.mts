@@ -76,9 +76,12 @@ if (result.problems.length) {
   for (const p of result.problems) console.error(`  - ${p}`)
   process.exit(1)
 }
-const { create, update, unchanged } = result.counts
-console.log(`${result.dryRun ? 'DRY RUN' : result.ok ? 'DONE' : 'FAILED'}: ${create} to create, ${update} to update, ${unchanged} unchanged.`)
-for (const i of result.items.filter((x) => x.action !== 'unchanged')) console.log(`  ${i.action.padEnd(6)} ${i.collection.padEnd(13)} ${i.recordId}`)
+const { create, update, unchanged, supersede } = result.counts
+console.log(
+  `${result.dryRun ? 'DRY RUN' : result.ok ? 'DONE' : 'FAILED'}: ${create} to create, ${update} to update, ${unchanged} unchanged` +
+    (supersede ? `, ${supersede} legal version(s) to supersede.` : '.'),
+)
+for (const i of result.items.filter((x) => x.action !== 'unchanged')) console.log(`  ${i.action.padEnd(9)} ${i.collection.padEnd(13)} ${i.recordId}`)
 if (result.orphans.length) {
   console.log(`In the site but no longer in _ops (left as they are): ${result.orphans.length}`)
   for (const o of result.orphans) console.log(`  orphan ${o.collection.padEnd(13)} ${o.recordId}`)
