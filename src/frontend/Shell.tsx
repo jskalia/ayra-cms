@@ -50,12 +50,16 @@ export function Shell({
             </a>
           )}
         </div>
-        <p className="cr-who">
+        <div className="cr-who">
           <strong>{session.user.name ?? session.user.email}</strong>
           {session.isAdmin ? 'Admin' : 'Viewer'} · read-only for content
           <br />
-          <a href="/admin/logout">Sign out</a>
-        </p>
+          <form action="/sign-out" method="post">
+            <button type="submit" className="cr-signout">
+              Sign out
+            </button>
+          </form>
+        </div>
       </nav>
       <main className="cr-main">{children}</main>
     </div>
