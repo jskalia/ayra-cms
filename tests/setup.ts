@@ -16,9 +16,10 @@ const require = createRequire(import.meta.url)
 const pg = require('pg') as typeof import('pg')
 
 const url = process.env.DATABASE_URL ?? ''
-// The app prefers these over DATABASE_URL, and a Blob token would upload to real storage.
+// The app prefers these over DATABASE_URL, a Blob token would upload to real storage, and a
+// Resend key would send real email.
 for (const name of Object.keys(process.env)) {
-  if (/^(DATABASE_URL_UNPOOLED|POSTGRES_|PG[A-Z]+$|BLOB_|DEPLOY_HOOK_|NEON_)/.test(name)) delete process.env[name]
+  if (/^(DATABASE_URL_UNPOOLED|POSTGRES_|PG[A-Z]+$|BLOB_|DEPLOY_HOOK_|NEON_|RESEND_|EMAIL_FROM)/.test(name)) delete process.env[name]
 }
 const safe = (() => {
   try {

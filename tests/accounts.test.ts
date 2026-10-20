@@ -54,3 +54,52 @@ describe('one-time admin bootstrap', () => {
     await expect(ctx.payload.login({ collection: 'users', data: { email: 'viewera@example.test', password: 'attacker-password-123' } })).rejects.toThrow()
   })
 })
+
+describe('password resets never leak a link (2.9)', () => {
+  const resetToken = async (id: number | string) =>
+    ((await ctx.payload.findByID({ collection: 'users', id, showHiddenFields: true })) as { resetPasswordToken?: string | null }).resetPasswordToken
+  it('without email, "Forgot password?" is refused and no reset token is made', async () => {
+    const logged: string[] = []
+    const { logger } = ctx.payload
+    const spy = (level: 'info' | 'warn' | 'error') => {
+      const original = logger[level].bind(logger)
+      logger[level] = ((...a: unknown[]) => (logged.push(JSON.stringify(a)), original(...(a as [never])))) as never
+      return () => (logger[level] = original as never)
+    }
+    const restore = [spy('info'), spy('warn'), spy('error')]
+    try {
+      await expect(
+        ctx.payload.forgotPassword({ collection: 'users', data: { email: 'viewera@example.test' } }),
+      ).rejects.toThrow(/off until the CMS has email/)
+    } finally {
+      restore.forEach((r) => r())
+    }
+    expect(await resetToken(ctx.users.viewerA.id)).toBeFalsy()
+    expect(logged.join('\n')).not.toMatch(/reset/i)
+  })
+  it('with email configured, resets are allowed (here without sending anything)', async () => {
+    process.env.RESEND_API_KEY = 're_test_not_a_real_key'
+    process.env.EMAIL_FROM = 'cms@example.test'
+    try {
+      const token = await ctx.payload.forgotPassword({ collection: 'users', data: { email: 'viewera@example.test' }, disableEmail: true })
+      expect(token).toBeTruthy()
+      expect(await resetToken(ctx.users.viewerA.id)).toBeTruthy()
+    } finally {
+      delete process.env.RESEND_API_KEY
+      delete process.env.EMAIL_FROM
+    }
+  })
+  it('the config uses Resend only when both settings are present, never the logging adapter', async () => {
+    const { emailAdapter } = await import('../src/lib/email')
+    expect(emailAdapter()).toBeUndefined()
+    process.env.RESEND_API_KEY = 're_test_not_a_real_key'
+    expect(emailAdapter()).toBeUndefined()
+    process.env.EMAIL_FROM = 'cms@example.test'
+    try {
+      expect(emailAdapter()).toBeTypeOf('function')
+    } finally {
+      delete process.env.RESEND_API_KEY
+      delete process.env.EMAIL_FROM
+    }
+  })
+})

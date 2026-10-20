@@ -1,6 +1,7 @@
 import { APIError, type CollectionConfig } from 'payload'
 
 import { canUseAdmin, fieldHasRole, hasRole, roleOf } from '../access/roles'
+import { resetsNeedEmail } from '../lib/email'
 
 export const Users: CollectionConfig = {
   slug: 'users',
@@ -27,6 +28,8 @@ export const Users: CollectionConfig = {
     delete: hasRole('admin'),
   },
   hooks: {
+    // No email, no reset link: it would only end up in the server log (src/lib/email.ts).
+    beforeOperation: [resetsNeedEmail],
     // Website and sync accounts work only with their API key, never with a password.
     beforeLogin: [
       ({ user }) => {

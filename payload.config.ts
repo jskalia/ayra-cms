@@ -38,6 +38,7 @@ import { TrustDocuments } from './src/collections/TrustDocuments'
 import { ConsentRecords } from './src/collections/ConsentRecords'
 import { Audiences, Workflows } from './src/collections/AudiencesWorkflows'
 import { bootstrapAdmin } from './src/lib/bootstrapAdmin'
+import { emailAdapter } from './src/lib/email'
 import { fieldHasRole } from './src/access/roles'
 import type { User } from './payload-types'
 
@@ -190,6 +191,9 @@ export default buildConfig({
   collections: [Users, Tenants, SiteSettings, Products, Claims, Atoms, Posts, Media, Pages, WhatsNew, SyncReceipts, Legal, Decks, TrustDocuments, ConsentRecords, Audiences, Workflows],
 
   secret: requiredSecret(),
+
+  // Real email (Resend) or none: never the console adapter, which logs reset links (2.9).
+  email: emailAdapter(),
 
   sharp,
 
