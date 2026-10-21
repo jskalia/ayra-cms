@@ -52,6 +52,16 @@ export async function sitesFor(s: Session): Promise<{ id: number | string; slug:
   return docs.map((t) => ({ id: t.id, slug: String(t.slug), name: String(t.name) }))
 }
 
+/** The sites with their status (for the sidebar's dots), in one extra query. */
+export async function sitesWithStatus(s: Session): Promise<{ id: number | string; slug: string; name: string; status: string }[]> {
+  const sites = await sitesFor(s)
+  const { docs } = await s.payload.find({
+    collection: 'site-settings', ...as(s), depth: 0, limit: 50, pagination: false, where: { tenant: { in: sites.map((t) => t.id) } },
+  })
+  const status = new Map((docs as unknown as { tenant: unknown; status?: string }[]).map((d) => [String(typeof d.tenant === 'object' && d.tenant ? (d.tenant as { id: unknown }).id : d.tenant), d.status]))
+  return sites.map((t) => ({ ...t, status: status.get(String(t.id)) ?? 'no settings yet' }))
+}
+
 export async function siteSummary(s: Session, site: { id: number | string; slug: string; name: string }): Promise<SiteSummary> {
   const inSite = { tenant: { equals: site.id } }
   const counts: Record<string, number> = {}

@@ -85,7 +85,18 @@ export default buildConfig({
   admin: {
     user: 'users',
     meta: {
-      titleSuffix: ' — AyraAgent CMS',
+      titleSuffix: ' · Ayra CMS',
+      icons: [
+        { rel: 'icon', type: 'image/png', url: '/brand/favicon-32x32.png' },
+        { rel: 'apple-touch-icon', url: '/brand/apple-touch-icon.png' },
+      ],
+    },
+    // 10.6: the Ayra mark on the sign-in page and in the admin nav.
+    components: {
+      graphics: {
+        Logo: '/src/components/admin/Graphics#Logo',
+        Icon: '/src/components/admin/Graphics#Icon',
+      },
     },
     importMap: {
       baseDir: path.resolve(dirname),

@@ -1,5 +1,7 @@
 import type { ReactNode } from 'react'
 
+import { StatusBadge } from './ui'
+
 /** What each site tab lists: the columns, which fields filters and search use. */
 type Row = Record<string, any>
 export type Column = { label: string; cell: (r: Row) => ReactNode; mono?: boolean }
@@ -10,8 +12,7 @@ export type TabDef = {
   filters: { field: string; label: string; options: string[] }[]
 }
 
-const pill = (value: unknown, kind?: string) =>
-  value === undefined || value === null || value === '' ? '—' : <span className={`cr-pill ${kind ?? String(value)}`}>{String(value)}</span>
+const pill = (value: unknown, kind?: 'ok' | 'warn' | 'bad') => <StatusBadge value={value} tone={kind ?? (value === undefined ? undefined : 'neutral')} />
 const short = (text: unknown, n = 90) => {
   const s = String(text ?? '')
   return s.length > n ? `${s.slice(0, n - 1)}…` : s
@@ -28,7 +29,7 @@ export const fileUrl = (url?: string | null) => {
   }
 }
 const reviewBy = (r: Row) =>
-  r.reviewBy ? <span className={r.status === 'approved' && r.reviewBy < today() ? 'cr-late' : undefined}>{r.reviewBy}</span> : '—'
+  r.reviewBy ? <span className={r.status === 'approved' && r.reviewBy < today() ? 'font-semibold text-bad' : undefined}>{r.reviewBy}</span> : '—'
 const VIS = { field: 'visibility', label: 'Visibility', options: ['public', 'internal', 'investor-only'] }
 
 export const TABS: Record<string, TabDef> = {
@@ -91,7 +92,7 @@ export const TABS: Record<string, TabDef> = {
     searchFields: ['recordId', 'alt'],
     filters: [{ field: 'status', label: 'Status', options: ['approved', 'draft', 'retired'] }],
     columns: [
-      { label: '', cell: (r) => { const src = fileUrl(r.sizes?.thumbnail?.url || r.url); return src ? <img className="cr-thumb" src={src} alt="" /> : null } },
+      { label: '', cell: (r) => { const src = fileUrl(r.sizes?.thumbnail?.url || r.url); return src ? <img className="size-9 rounded-md border border-border object-cover" src={src} alt="" /> : null } },
       { label: 'Asset', cell: (r) => r.recordId, mono: true },
       { label: 'Kind', cell: (r) => r.kind },
       { label: 'Status', cell: (r) => pill(r.status, r.status === 'approved' ? 'ok' : undefined) },
@@ -198,4 +199,21 @@ export const TABS: Record<string, TabDef> = {
       { label: 'Recorded', cell: (r) => (r.recordedAt ? String(r.recordedAt).slice(0, 16).replace('T', ' ') : '—'), mono: true },
     ],
   },
+}
+
+/** Columns a person can sort by, per tab: column label → field. */
+export const SORTS: Record<string, Record<string, string>> = {
+  pages: { Route: 'route', Template: 'template', Status: 'status', 'Review by': 'reviewBy' },
+  posts: { Title: 'title', Status: 'status', Published: 'publishedAt' },
+  claims: { Claim: 'recordId', Status: 'status' },
+  atoms: { Atom: 'recordId', Kind: 'kind', Status: 'status' },
+  media: { Asset: 'recordId', Kind: 'kind', Status: 'status' },
+  products: { Product: 'name', Id: 'recordId' },
+  'whats-new': { Release: 'recordId', Released: 'releasedAt', Status: 'status' },
+  legal: { Type: 'type', Version: 'version', Status: 'status', Effective: 'effectiveAt' },
+  decks: { Deck: 'title', Id: 'recordId', Status: 'status' },
+  'trust-documents': { Document: 'title', Type: 'type', Effective: 'effectiveAt', Status: 'status' },
+  audiences: { Audience: 'name', Id: 'recordId', Status: 'status' },
+  workflows: { Workflow: 'name', Id: 'recordId', Status: 'status' },
+  'consent-records': { Policy: 'policyVersion', Region: 'region', Recorded: 'recordedAt' },
 }

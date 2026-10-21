@@ -1,0 +1,219 @@
+/*
+ * Ayra CMS control room, in the AyraAgent look (Phase 10): dark by default with a light theme,
+ * one blue accent, Plus Jakarta Sans, numbers and ids in mono, colour only for status.
+ * Every text colour passes WCAG 2.2 AA (4.5:1) on its background in both themes.
+ * Loaded only by the control room's layout; Payload's /admin never sees it.
+ */
+@import 'tailwindcss';
+
+@custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
+
+:root,
+[data-theme='light'] {
+  color-scheme: light;
+  --bg: #f4f4f6;
+  --surface: #ffffff;
+  --surface-2: #f4f4f5;
+  --surface-3: #ebebee;
+  --sidebar: #fbfbfc;
+  --border: #e4e4e7;
+  --border-strong: #d4d4d8;
+  --text: #18181b;
+  --muted: #5f5f68;
+  --faint: #6e6e77;
+  --accent: #1d4ed8; /* text and links */
+  --accent-fill: #2563eb; /* backgrounds under white text */
+  --accent-fill-hover: #1d4ed8;
+  --accent-fg: #ffffff;
+  --accent-soft: rgb(37 99 235 / 0.09);
+  --ok: #047857;
+  --ok-soft: rgb(4 120 87 / 0.1);
+  --warn: #8a5a00;
+  --warn-soft: rgb(202 138 4 / 0.13);
+  --bad: #c62828;
+  --bad-soft: rgb(220 38 38 / 0.1);
+  --info: #0369a1;
+  --info-soft: rgb(3 105 161 / 0.1);
+  --band-from: #1d4ed8;
+  --band-to: #2459e0;
+  --shadow: 0 1px 2px rgb(16 16 20 / 0.05), 0 1px 1px rgb(16 16 20 / 0.03);
+}
+
+[data-theme='dark'] {
+  color-scheme: dark;
+  --bg: #18181b;
+  --surface: #1f1f23;
+  --surface-2: #26262b;
+  --surface-3: #2e2e34;
+  --sidebar: #111113;
+  --border: #2c2c32;
+  --border-strong: #3a3a41;
+  --text: #f4f4f5;
+  --muted: #a1a1aa;
+  --faint: #8f8f98;
+  --accent: #7cb1ff; /* text and links */
+  --accent-fill: #2563eb; /* backgrounds under white text */
+  --accent-fill-hover: #1d4ed8;
+  --accent-fg: #ffffff;
+  --accent-soft: rgb(59 130 246 / 0.14);
+  --ok: #34d399;
+  --ok-soft: rgb(52 211 153 / 0.12);
+  --warn: #fbbf24;
+  --warn-soft: rgb(251 191 36 / 0.12);
+  --bad: #f87171;
+  --bad-soft: rgb(248 113 113 / 0.12);
+  --info: #38bdf8;
+  --info-soft: rgb(56 189 248 / 0.12);
+  --band-from: #1d4ed8;
+  --band-to: #2459e0;
+  --shadow: 0 1px 2px rgb(0 0 0 / 0.3);
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
+  --color-sidebar: var(--sidebar);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-text: var(--text);
+  --color-muted: var(--muted);
+  --color-faint: var(--faint);
+  --color-accent: var(--accent);
+  --color-accent-fill: var(--accent-fill);
+  --color-accent-fill-hover: var(--accent-fill-hover);
+  --color-accent-fg: var(--accent-fg);
+  --color-accent-soft: var(--accent-soft);
+  --color-ok: var(--ok);
+  --color-ok-soft: var(--ok-soft);
+  --color-warn: var(--warn);
+  --color-warn-soft: var(--warn-soft);
+  --color-bad: var(--bad);
+  --color-bad-soft: var(--bad-soft);
+  --color-info: var(--info);
+  --color-info-soft: var(--info-soft);
+  --font-sans: var(--font-jakarta), ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 18px;
+  --shadow-card: var(--shadow);
+}
+
+@layer base {
+  html,
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+  ::selection {
+    background: var(--accent-soft);
+  }
+}
+
+/* Entrance: a 12px fade-up (House Style), staggered by --i. Off for reduced motion and print. */
+@keyframes cr-rise {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+}
+.cr-rise {
+  animation: cr-rise 400ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: calc(var(--i, 0) * 60ms);
+}
+@keyframes cr-pulse {
+  50% {
+    opacity: 0.55;
+  }
+}
+.cr-skeleton {
+  background: var(--surface-2);
+  border-radius: 8px;
+  animation: cr-pulse 1.6s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .cr-rise,
+  .cr-skeleton {
+    animation: none;
+  }
+}
+@media print {
+  .cr-rise {
+    animation: none;
+  }
+}
+
+/* Long-form text (post and page bodies) rendered from rich text. */
+.cr-prose {
+  font-size: 15px;
+  line-height: 1.7;
+  max-width: 72ch;
+  color: var(--text);
+}
+.cr-prose > * + * {
+  margin-top: 0.9em;
+}
+.cr-prose h1,
+.cr-prose h2,
+.cr-prose h3,
+.cr-prose h4 {
+  font-weight: 650;
+  line-height: 1.3;
+  margin-top: 1.5em;
+  letter-spacing: -0.01em;
+}
+.cr-prose h1 {
+  font-size: 1.5em;
+}
+.cr-prose h2 {
+  font-size: 1.25em;
+}
+.cr-prose h3 {
+  font-size: 1.1em;
+}
+.cr-prose ul {
+  list-style: disc;
+  padding-left: 1.3em;
+}
+.cr-prose ol {
+  list-style: decimal;
+  padding-left: 1.3em;
+}
+.cr-prose a {
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.cr-prose blockquote {
+  border-left: 3px solid var(--border-strong);
+  padding-left: 1em;
+  color: var(--muted);
+}
+.cr-prose code {
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+  background: var(--surface-2);
+  padding: 0.1em 0.35em;
+  border-radius: 4px;
+}
+.cr-prose img {
+  max-width: 100%;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+}
+
+/* Scroll areas: thin, quiet bars. */
+.cr-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-strong) transparent;
+}
