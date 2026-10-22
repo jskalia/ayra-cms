@@ -58,6 +58,7 @@ export const TABS: Record<string, TabDef> = {
       { label: 'Status', cell: (r) => pill(r.status, r.status === 'approved' ? 'ok' : undefined) },
       { label: 'Visibility', cell: (r) => pill(r.visibility, r.visibility === 'public' ? 'ok' : 'warn') },
       { label: 'Author', cell: (r) => r.author?.name ?? '—' },
+      { label: 'Source', cell: (r) => (r.origin === 'ayra-blogs' ? pill('AyraAgent', 'ok') : '_ops') },
       { label: 'Published', cell: (r) => (r.publishedAt ? String(r.publishedAt).slice(0, 10) : '—'), mono: true },
     ],
   },
@@ -204,7 +205,7 @@ export const TABS: Record<string, TabDef> = {
 /** Columns a person can sort by, per tab: column label → field. */
 export const SORTS: Record<string, Record<string, string>> = {
   pages: { Route: 'route', Template: 'template', Status: 'status', 'Review by': 'reviewBy' },
-  posts: { Title: 'title', Status: 'status', Published: 'publishedAt' },
+  posts: { Title: 'title', Status: 'status', Published: 'publishedAt', Source: 'origin' },
   claims: { Claim: 'recordId', Status: 'status' },
   atoms: { Atom: 'recordId', Kind: 'kind', Status: 'status' },
   media: { Asset: 'recordId', Kind: 'kind', Status: 'status' },

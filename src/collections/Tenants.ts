@@ -1,6 +1,7 @@
 import type { CollectionConfig } from 'payload'
 
 import { hasRole, isSignedIn } from '../access/roles'
+import { internalRead } from '../fields/record'
 
 /**
  * One tenant per website (WebsiteOps plan MP-D39; decision D1). A site reads only its own
@@ -54,6 +55,32 @@ export const Tenants: CollectionConfig = {
         description:
           'Name (not value) of the env var holding this site’s Vercel deploy hook, used to start a preview after a sync.',
       },
+    },
+    {
+      // Where this site's blog posts are written: an AyraAgent organization's Blogs (its
+      // published blogs become this site's posts; see src/sync/blogs.ts). Never shown to websites.
+      name: 'ayraBlogs',
+      type: 'group',
+      access: internalRead,
+      admin: { description: 'Published blogs from this AyraAgent organization become this site’s posts.' },
+      fields: [
+        { name: 'org', type: 'text', admin: { description: 'AyraAgent organization id, e.g. ayra (Save Life). Empty: no import.' } },
+        {
+          name: 'tokenEnv',
+          type: 'text',
+          admin: { description: 'Name (not value) of the env var holding the read-only AyraAgent service token for this org.' },
+        },
+        {
+          name: 'author',
+          type: 'group',
+          admin: { description: 'The real person shown as the author (BlogPosting JSON-LD).' },
+          fields: [
+            { name: 'name', type: 'text' },
+            { name: 'jobTitle', type: 'text' },
+            { name: 'url', type: 'text' },
+          ],
+        },
+      ],
     },
   ],
 }

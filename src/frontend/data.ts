@@ -27,7 +27,7 @@ export type Receipt = {
   status: 'ok' | 'failed'
   actor: string
   finishedAt: string
-  counts?: { create: number; update: number; unchanged: number; supersede?: number }
+  counts?: { create: number; update: number; unchanged: number; supersede?: number; retire?: number }
   orphans?: { collection: string; recordId: string }[]
   error?: string | null
 }

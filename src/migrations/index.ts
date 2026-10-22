@@ -9,6 +9,7 @@ import * as migration_20261019_215845_retire_authors_categories_post_drafts from
 import * as migration_20261019_215903_posts_and_whats_new from './20261019_215903_posts_and_whats_new';
 import * as migration_20261019_220955_sync_receipts_markdown_bodies from './20261019_220955_sync_receipts_markdown_bodies';
 import * as migration_20261020_212900_legal_decks_trust_consent_audiences from './20261020_212900_legal_decks_trust_consent_audiences';
+import * as migration_20261022_104431_ayra_blogs_import from './20261022_104431_ayra_blogs_import';
 
 export const migrations = [
   {
@@ -64,6 +65,11 @@ export const migrations = [
   {
     up: migration_20261020_212900_legal_decks_trust_consent_audiences.up,
     down: migration_20261020_212900_legal_decks_trust_consent_audiences.down,
-    name: '20261020_212900_legal_decks_trust_consent_audiences'
+    name: '20261020_212900_legal_decks_trust_consent_audiences',
+  },
+  {
+    up: migration_20261022_104431_ayra_blogs_import.up,
+    down: migration_20261022_104431_ayra_blogs_import.down,
+    name: '20261022_104431_ayra_blogs_import'
   },
 ];

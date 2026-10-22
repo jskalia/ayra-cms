@@ -1,4 +1,4 @@
-import { Search, SlidersHorizontal } from 'lucide-react'
+import { Download, Search, SlidersHorizontal } from 'lucide-react'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import type { CollectionSlug, Where } from 'payload'
@@ -28,6 +28,11 @@ export default async function SitePage({ params, searchParams }: Props) {
   const site = sites.find((s) => s.slug === slug)
   if (!site) notFound() // not a site this person may see
   const summary = await siteSummary(session, site)
+  // Admins can pull this site's published AyraAgent blogs now (src/sync/blogs.ts).
+  const tenantDoc = session.isAdmin
+    ? ((await session.payload.findByID({ collection: 'tenants', id: site.id, ...as(session), depth: 0 })) as { ayraBlogs?: { org?: string | null } })
+    : undefined
+  const blogsOrg = tenantDoc?.ayraBlogs?.org || undefined
 
   const tab = (SITE_COLLECTIONS.find((c) => c.slug === query.tab)?.slug ?? 'pages') as string
   const def = TABS[tab]
@@ -75,11 +80,24 @@ export default async function SitePage({ params, searchParams }: Props) {
         }
         actions={
           <>
+            {blogsOrg && (
+              <form action={`/sites/${slug}/import-blogs`} method="post">
+                <Button type="submit" size="sm" variant="primary" title={`Import published blogs from AyraAgent org ${blogsOrg}`}>
+                  <Download className="size-3.5" aria-hidden /> Import from AyraAgent
+                </Button>
+              </form>
+            )}
             <ButtonLink href={`/receipts?site=${slug}`} size="sm">Receipts</ButtonLink>
             <ButtonLink href="/checks" size="sm">Checks</ButtonLink>
           </>
         }
       />
+
+      {query.import && (
+        <p role="status" className={cn('cr-rise mb-4 rounded-[12px] border px-4 py-2.5 text-[13px]', query.import.startsWith('problem') || query.import === 'not-configured' ? 'border-bad/30 bg-bad-soft' : 'border-ok/30 bg-ok-soft')}>
+          <b>AyraAgent import:</b> {query.import === 'not-configured' ? 'this site has no AyraAgent org set.' : query.import}
+        </p>
+      )}
 
       <nav aria-label="Record kinds" className="cr-scroll cr-rise -mx-1 mb-4 flex gap-1 overflow-x-auto px-1 pb-1">
         {SITE_COLLECTIONS.map((c) => {

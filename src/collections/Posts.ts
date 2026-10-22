@@ -1,7 +1,7 @@
 import { ValidationError, type CollectionBeforeValidateHook, type CollectionConfig } from 'payload'
 
 import { hasRole, readContent, writeContent } from '../access/roles'
-import { recordIdField, syncField, visibilityField } from '../fields/record'
+import { internalRead, recordIdField, syncField, visibilityField } from '../fields/record'
 import { bannedVocabularyBeforeChange } from '../hooks/bannedVocabulary'
 import { markdownBody } from '../hooks/markdownBody'
 import { publicReferences } from '../hooks/pageReferences'
@@ -119,6 +119,23 @@ export const Posts: CollectionConfig = {
     },
     { name: 'owner', type: 'text' },
     { name: 'reviewBy', type: 'text' },
+    {
+      name: 'origin',
+      type: 'select',
+      defaultValue: 'ops',
+      options: [
+        { label: 'Synced from _ops', value: 'ops' },
+        { label: 'AyraAgent Blogs', value: 'ayra-blogs' },
+      ],
+      admin: { description: 'Where the post was written.' },
+    },
+    { name: 'externalId', type: 'text', index: true, access: internalRead, admin: { description: 'The AyraAgent blog id.' } },
+    {
+      name: 'sources',
+      type: 'json',
+      access: internalRead,
+      admin: { description: 'Files the AyraAgent blog cites (internal: never sent to websites).' },
+    },
     syncField,
   ],
 }

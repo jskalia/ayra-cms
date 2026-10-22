@@ -208,6 +208,27 @@ export interface Tenant {
    * Name (not value) of the env var holding this site’s Vercel deploy hook, used to start a preview after a sync.
    */
   deployHookEnv?: string | null;
+  /**
+   * Published blogs from this AyraAgent organization become this site’s posts.
+   */
+  ayraBlogs?: {
+    /**
+     * AyraAgent organization id, e.g. ayra (Save Life). Empty: no import.
+     */
+    org?: string | null;
+    /**
+     * Name (not value) of the env var holding the read-only AyraAgent service token for this org.
+     */
+    tokenEnv?: string | null;
+    /**
+     * The real person shown as the author (BlogPosting JSON-LD).
+     */
+    author?: {
+      name?: string | null;
+      jobTitle?: string | null;
+      url?: string | null;
+    };
+  };
   updatedAt: string;
   createdAt: string;
 }
@@ -672,6 +693,26 @@ export interface Post {
   };
   owner?: string | null;
   reviewBy?: string | null;
+  /**
+   * Where the post was written.
+   */
+  origin?: ('ops' | 'ayra-blogs') | null;
+  /**
+   * The AyraAgent blog id.
+   */
+  externalId?: string | null;
+  /**
+   * Files the AyraAgent blog cites (internal: never sent to websites).
+   */
+  sources?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
   /**
    * Written by the _ops sync.
    */
@@ -1980,6 +2021,19 @@ export interface TenantsSelect<T extends boolean = true> {
       };
   status?: T;
   deployHookEnv?: T;
+  ayraBlogs?:
+    | T
+    | {
+        org?: T;
+        tokenEnv?: T;
+        author?:
+          | T
+          | {
+              name?: T;
+              jobTitle?: T;
+              url?: T;
+            };
+      };
   updatedAt?: T;
   createdAt?: T;
 }
@@ -2221,6 +2275,9 @@ export interface PostsSelect<T extends boolean = true> {
       };
   owner?: T;
   reviewBy?: T;
+  origin?: T;
+  externalId?: T;
+  sources?: T;
   sync?:
     | T
     | {

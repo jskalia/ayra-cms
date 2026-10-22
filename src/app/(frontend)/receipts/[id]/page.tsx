@@ -13,7 +13,7 @@ export const metadata = { title: 'Receipt' }
 type Doc = Record<string, any>
 type Item = { collection: string; recordId: string; sourcePath: string; sha256: string; action: string }
 
-const ACTION_TONE: Record<string, 'ok' | 'info' | 'warn'> = { create: 'ok', update: 'info', supersede: 'warn' }
+const ACTION_TONE: Record<string, 'ok' | 'info' | 'warn'> = { create: 'ok', update: 'info', supersede: 'warn', retire: 'warn' }
 
 /** 9.5 / 10.5 · One sync run in full. */
 export default async function ReceiptPage({ params }: { params: Promise<{ id: string }> }) {
@@ -74,6 +74,7 @@ export default async function ReceiptPage({ params }: { params: Promise<{ id: st
         <Stat value={r.counts?.create ?? 0} label="created" tone={r.counts?.create ? 'ok' : undefined} />
         <Stat value={r.counts?.update ?? 0} label="updated" />
         {r.counts?.supersede ? <Stat value={r.counts.supersede} label="superseded" tone="warn" /> : null}
+        {r.counts?.retire ? <Stat value={r.counts.retire} label="retired" tone="warn" /> : null}
         <Stat value={r.counts?.unchanged ?? 0} label="unchanged" />
         <Stat value={orphans.length} label="not in _ops" tone={orphans.length ? 'warn' : undefined} />
       </Card>
