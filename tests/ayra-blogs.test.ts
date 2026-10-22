@@ -5,7 +5,7 @@
  */
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
-import { blogsApi, cleanBody, mapBlog, postSlug, runBlogImport, type AyraBlog, type BlogsApi } from '../src/sync/blogs'
+import { blogsApi, cleanBody, fileSource, mapBlog, postSlug, restStore, runBlogImport, type AyraBlog, type BlogsApi } from '../src/sync/blogs'
 import { ctx, setup, teardown, visible } from './setup'
 
 beforeAll(setup, 180_000)
@@ -209,5 +209,49 @@ describe('the AyraAgent API client', () => {
   it('reports refusals with AyraAgent’s error code', async () => {
     const f = (async () => Response.json({ error: { code: 'blogs_forbidden' } }, { status: 403 })) as typeof fetch
     await expect(blogsApi({ base: 'https://api.example.test', token: 't', org: 'o', fetch: f }).list()).rejects.toThrow(/403 \(blogs_forbidden\)/)
+  })
+})
+
+describe('importing a blog file over HTTPS, as the site’s sync account (no database access)', () => {
+  let restFetch: typeof fetch
+  beforeAll(async () => {
+    await ctx.payload.update({ collection: 'users', id: ctx.users.syncA.id, overrideAccess: true, data: { enableAPIKey: true, apiKey: 'test-sync-key-a-0000000000000000000' } as never })
+    await ctx.payload.update({ collection: 'users', id: ctx.users.readerA.id, overrideAccess: true, data: { enableAPIKey: true, apiKey: 'test-reader-key-a-00000000000000000' } as never })
+    const { REST_GET, REST_POST, REST_PATCH } = await import('@payloadcms/next/routes')
+    const { default: config } = await import('../payload.config')
+    const handlers = { GET: REST_GET(config), POST: REST_POST(config), PATCH: REST_PATCH(config) } as const
+    restFetch = (async (input: string | URL | Request, init?: RequestInit) => {
+      const url = new URL(String(input))
+      const slug = url.pathname.replace(/^\/cms-api\//, '').split('/')
+      const method = (init?.method ?? 'GET') as keyof typeof handlers
+      return handlers[method](new Request(url, init), { params: Promise.resolve({ slug }) })
+    }) as typeof fetch
+  })
+  const store = (apiKey = 'test-sync-key-a-0000000000000000000') => restStore({ base: 'http://localhost:3000', apiKey, fetch: restFetch })
+
+  it('creates the post through the CMS API, with a receipt, and never retires other posts', async () => {
+    const before = (await visible('posts', 'viewerA')).filter((d) => d.origin === 'ayra-blogs' && d.status === 'approved').length
+    const [r] = await runBlogImport({
+      store: store(), site: 'savelifeai', source: fileSource([blog('file-1', { slug: 'from-a-file' })]), env: {}, fetch: fakeFetch,
+    })
+    expect(r.problems).toEqual([])
+    expect(r.counts).toMatchObject({ create: 1, retire: 0 })
+    expect(r.receiptId).toBeTruthy()
+    expect(await post('readerA', 'post:from-a-file')).toBeDefined()
+    const after = (await visible('posts', 'viewerA')).filter((d) => d.origin === 'ayra-blogs' && d.status === 'approved').length
+    expect(after).toBe(before + 1)
+  })
+  it('a second run over HTTPS changes nothing', async () => {
+    const [r] = await runBlogImport({ store: store(), site: 'savelifeai', source: fileSource([blog('file-1', { slug: 'from-a-file' })]), env: {} })
+    expect(r.counts).toMatchObject({ create: 0, update: 0, unchanged: 1 })
+  })
+  it('a website key cannot write posts', async () => {
+    // It cannot even see the site's AyraAgent settings, so there is nothing it may import into.
+    const results = await runBlogImport({ store: store('test-reader-key-a-00000000000000000'), site: 'savelifeai', source: fileSource([blog('file-2')]), env: {} })
+    expect(results).toEqual([])
+    expect(await post('viewerA', 'post:widget-update-file-2')).toBeUndefined()
+  })
+  it('a key cannot reach another site', async () => {
+    expect(await store().tenants('junaidkalia')).toEqual([])
   })
 })
