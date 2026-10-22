@@ -10,7 +10,7 @@ import { PhoneDock, SiteSwitcher, TopBar } from './shell/TopBar'
 
 /**
  * The control room's frame (Phase 10, the AyraAgent look): a sidebar with the logo, a site
- * switcher and grouped links; a top bar with ⌘K search, Ask Ayra, theme and account; on a phone,
+ * switcher and grouped links; a top bar with ⌘K search, theme and account; on a phone,
  * a slide-in menu and a bottom dock. `active` is the href of the current page.
  */
 export async function Shell({ session, sites, active, children }: { session: Session; sites: ShellSite[]; active: string; children: ReactNode }) {
@@ -50,10 +50,6 @@ export async function Shell({ session, sites, active, children }: { session: Ses
         </Link>
         <SiteSwitcher sites={sites} current={currentSite} />
         <NavList sections={sections} active={active} />
-        <div className="mt-auto rounded-[12px] border border-border bg-surface px-3 py-2.5 text-[12px] text-muted">
-          <p className="font-semibold text-text">Ayra CMS</p>
-          <p>Blogs come in from AyraAgent. A person approves them here.</p>
-        </div>
       </aside>
       <div className="flex min-w-0 flex-col">
         <TopBar sections={sections} active={active} user={user} sites={sites} currentSite={currentSite} />

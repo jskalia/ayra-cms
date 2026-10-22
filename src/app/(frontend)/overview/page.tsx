@@ -1,4 +1,4 @@
-import { AlertTriangle, ArrowRight, CircleCheckBig, Globe, OctagonAlert, ReceiptText, Sparkles } from 'lucide-react'
+import { AlertTriangle, ArrowRight, CircleCheckBig, Globe, OctagonAlert, ReceiptText } from 'lucide-react'
 import Link from 'next/link'
 
 import { runChecks } from '../../../frontend/checks'
@@ -178,25 +178,6 @@ export default async function Overview() {
           </div>
         )}
       </section>
-
-      <Card i={4 + summaries.length} className="mt-8 overflow-hidden" aria-labelledby="h-ask">
-        <div className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center">
-          <span className="flex size-11 shrink-0 items-center justify-center rounded-[12px] bg-accent-soft text-accent">
-            <Sparkles className="size-5" aria-hidden />
-          </span>
-          <div className="min-w-0 flex-1">
-            <h2 id="h-ask" className="text-[15px] font-bold">
-              Ask Ayra <Badge tone="accent" className="ml-1 align-middle">coming soon</Badge>
-            </h2>
-            <p className="mt-1 text-[13.5px] text-muted">
-              Ask what is live, what is out of date, or which pages cite a claim. Ayra will read and suggest only: it never approves, publishes or syncs.
-            </p>
-          </div>
-          <div aria-hidden className="flex h-10 w-full items-center rounded-[10px] border border-dashed border-border-strong px-3 text-[13px] text-faint sm:w-[320px]">
-            What changed on junaidkalia this week?
-          </div>
-        </div>
-      </Card>
     </Shell>
   )
 }

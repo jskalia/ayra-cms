@@ -3,7 +3,7 @@
 import { Command } from 'cmdk'
 import * as Dialog from '@radix-ui/react-dialog'
 import * as Menu from '@radix-ui/react-dropdown-menu'
-import { ChevronsUpDown, CornerDownLeft, KeyRound, LogOut, Menu as MenuIcon, Moon, Search, Sparkles, Sun, X } from 'lucide-react'
+import { ChevronsUpDown, CornerDownLeft, KeyRound, LogOut, Menu as MenuIcon, Moon, Search, Sun, X } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -140,29 +140,6 @@ function Palette({ open, onOpenChange, sections, toggleTheme }: { open: boolean;
   )
 }
 
-/* Ask Ayra (coming soon) ------------------------------------------------------------------------- */
-
-function AskAyra() {
-  return (
-    <Menu.Root>
-      <Menu.Trigger className="hidden h-8 items-center gap-1.5 rounded-[9px] border border-border bg-surface px-2.5 text-[12.5px] font-semibold text-text hover:border-border-strong sm:inline-flex">
-        <Sparkles className="size-3.5 text-accent" aria-hidden />
-        Ask Ayra
-      </Menu.Trigger>
-      <Menu.Portal>
-        <Menu.Content align="end" sideOffset={8} className="z-50 w-[300px] rounded-[14px] border border-border bg-surface p-4 text-[13px] shadow-xl">
-          <p className="flex items-center gap-2 font-semibold">
-            <Sparkles className="size-4 text-accent" aria-hidden /> Ask Ayra is coming
-          </p>
-          <p className="mt-1.5 text-muted">
-            Ask what is live, what is out of date, or which pages cite a claim. Ayra will read and suggest only: it never approves, publishes or syncs.
-          </p>
-        </Menu.Content>
-      </Menu.Portal>
-    </Menu.Root>
-  )
-}
-
 /* User menu ---------------------------------------------------------------------------------------- */
 
 function UserMenu({ user, theme, toggleTheme }: { user: ShellUser; theme: string; toggleTheme: () => void }) {
@@ -284,7 +261,6 @@ export function TopBar({ sections, active, user, sites, currentSite }: { section
         <span className="hidden truncate sm:inline">Search or jump to…</span>
         <kbd className={cn('ml-auto hidden rounded border border-border px-1.5 font-mono text-[10.5px] sm:inline')}>{mac ? '⌘K' : 'Ctrl K'}</kbd>
       </button>
-      <AskAyra />
       <button type="button" onClick={toggle} aria-label={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'} className="flex size-8 items-center justify-center rounded-[9px] text-muted hover:bg-surface-2 hover:text-text">
         {theme === 'dark' ? <Sun className="size-4" aria-hidden /> : <Moon className="size-4" aria-hidden />}
       </button>
