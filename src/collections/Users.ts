@@ -65,7 +65,7 @@ export const Users: CollectionConfig = {
       access: { create: fieldHasRole('admin'), update: fieldHasRole('admin') },
       options: [
         { label: 'Admin (manages users and tenants; cannot edit content)', value: 'admin' },
-        { label: 'Viewer (read-only, assigned tenants)', value: 'editor' },
+        { label: 'Approver (reads and approves AyraAgent blogs for assigned tenants; no other edits)', value: 'editor' },
         { label: 'Website reader (API key, one tenant, published only)', value: 'site-reader' },
         { label: 'Sync (API key; the only writer of content)', value: 'sync' },
       ],

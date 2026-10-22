@@ -1,12 +1,14 @@
 /**
- * AyraAgent Blogs → posts: published blogs become approved public posts written by the site's
- * sync account; archived ones retire; the public body carries no internal sources.
+ * AyraAgent Blogs → posts: published blogs become drafts written by the site's sync account; a
+ * person approves them (src/sync/approval.ts) and only then do websites see them; edits come
+ * back for approval; archived ones retire; the public body carries no internal sources.
  * The AyraAgent API is faked here (its shape is the one the dev server returns).
  */
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 import { blogsApi, cleanBody, fileSource, mapBlog, postSlug, restStore, runBlogImport, type AyraBlog, type BlogsApi } from '../src/sync/blogs'
-import { ctx, setup, teardown, visible } from './setup'
+import { canApprove, decidePost } from '../src/sync/approval'
+import { asUser, ctx, setup, teardown, visible } from './setup'
 
 beforeAll(setup, 180_000)
 afterAll(teardown)
@@ -77,34 +79,45 @@ describe('preparing a blog for the public site', () => {
   it('makes slugs the CMS accepts', () => {
     expect(postSlug('VesselViz3D: How It Works — 2!')).toBe('vesselviz3d-how-it-works-2')
   })
-  it('maps a blog to an approved public post with internal sources and short SEO fields', () => {
-    const p = mapBlog(blog('x', { title: 'T'.repeat(80) }), { name: 'Sam Example' }, 'demo-org')
-    expect(p).toMatchObject({ recordId: 'post:widget-update-x', status: 'approved', visibility: 'public', origin: 'ayra-blogs', externalId: 'x' })
+  it('maps a blog to a pending draft (public once approved) with internal sources and short SEO fields', () => {
+    const p = mapBlog(blog('x', { title: 'T'.repeat(80) }), { name: 'Sam Example' })
+    expect(p).toMatchObject({ recordId: 'post:widget-update-x', status: 'draft', visibility: 'public', origin: 'ayra-blogs', externalId: 'x', review: { state: 'pending' } })
     expect((p.seo as { title: string }).title.length).toBeLessThanOrEqual(60)
     expect((p.sources as { file: string }[])[0].file).toBe('design-notes.md')
-    expect((p.approved as { at: string }).at).toBe('2026-10-21')
+    expect((p.review as { revision: string }).revision).toBe('1')
+    expect(p.approved).toBeUndefined() // nobody has approved it yet
   })
 })
 
 describe('importing into a site', () => {
-  it('a published blog becomes an approved post the website sees, without its internal sources', async () => {
+  it('a published blog arrives as a draft the website does not see, with its internal sources kept', async () => {
     store.set('b1', blog('b1'))
     store.set('d1', blog('d1', { status: 'draft' })) // drafts are never imported
     const [r] = await run()
     expect(r.problems).toEqual([])
     expect(r.counts).toMatchObject({ create: 1, update: 0, retire: 0 })
     expect(r.receiptId).toBeTruthy()
-    expect(r.deployHook).toBe('called')
+    expect(r.deployHook).toBeUndefined() // a new draft changes nothing on the website
+    expect(hooks).toEqual([])
+    expect(await post('readerA', 'post:widget-update-b1')).toBeUndefined()
+    expect(await post('readerA', 'post:widget-update-d1')).toBeUndefined()
+    // People of the site see it, where it came from, and that it waits for approval.
+    const internal = await post('viewerA', 'post:widget-update-b1')
+    expect(internal).toMatchObject({ origin: 'ayra-blogs', status: 'draft', review: { state: 'pending', revision: '1' } })
+    expect(internal!.bodyMarkdown).not.toMatch(/Sources|_projects|\[\^/)
+    expect(internal!.body).toBeTruthy()
+    expect((internal!.sources as unknown[]).length).toBe(1)
+  })
+  it('approving makes it public: who and when are recorded, and the website deploy starts', async () => {
+    const id = (await post('viewerA', 'post:widget-update-b1'))!.id
+    const r = await decidePost({ payload: ctx.payload, user: ctx.users.viewerA as never, postId: id, decision: 'approve', env, fetch: fakeFetch, now: () => new Date('2026-10-22T12:00:00Z') })
+    expect(r).toMatchObject({ ok: true, deployHook: 'called' })
+    expect(hooks).toEqual(['https://hooks.example.test/a'])
     const site = await post('readerA', 'post:widget-update-b1')
     expect(site).toBeDefined()
-    expect(site!.bodyMarkdown).not.toMatch(/Sources|_projects|\[\^/)
-    expect(site!.body).toBeTruthy()
-    for (const hidden of ['sources', 'externalId', 'sync']) expect(site![hidden]).toBeUndefined()
-    expect(await post('readerA', 'post:widget-update-d1')).toBeUndefined()
-    // People of the site see where it came from.
-    const internal = await post('viewerA', 'post:widget-update-b1')
-    expect(internal!.origin).toBe('ayra-blogs')
-    expect((internal!.sources as unknown[]).length).toBe(1)
+    expect(site!.approved).toMatchObject({ by: 'viewerA', at: '2026-10-22', version: '1' })
+    for (const hidden of ['sources', 'externalId', 'sync', 'review']) expect(site![hidden]).toBeUndefined()
+    hooks.length = 0
   })
   it('running again changes nothing, files no receipt and starts no rebuild', async () => {
     hooks.length = 0
@@ -113,13 +126,22 @@ describe('importing into a site', () => {
     expect(r.receiptId).toBeUndefined()
     expect(hooks).toEqual([])
   })
-  it('an edited blog updates its post; a renamed slug keeps the post’s record id', async () => {
+  it('running again after the approval still changes nothing: a decision is never undone', async () => {
+    const [r] = await run()
+    expect(r.counts).toMatchObject({ create: 0, update: 0, unchanged: 1 })
+    expect((await post('viewerA', 'post:widget-update-b1'))!.status).toBe('approved')
+  })
+  it('an edited blog goes back for approval and leaves the website; a renamed slug keeps the record id', async () => {
     store.set('b1', blog('b1', { revision: 2, title: 'Widget update, revised', slug: 'a-new-slug' }))
     const [r] = await run()
     expect(r.counts.update).toBe(1)
-    const p = await post('readerA', 'post:widget-update-b1')
-    expect(p!.title).toBe('Widget update, revised')
-    expect(await post('readerA', 'post:a-new-slug')).toBeUndefined()
+    expect(r.deployHook).toBe('called') // a live post stopped being live
+    const p = await post('viewerA', 'post:widget-update-b1')
+    expect(p).toMatchObject({ title: 'Widget update, revised', status: 'draft', review: { state: 'pending', revision: '2', previouslyApproved: true } })
+    expect(p!.approved).toMatchObject({ by: null })
+    expect(await post('readerA', 'post:widget-update-b1')).toBeUndefined()
+    expect(await post('viewerA', 'post:a-new-slug')).toBeUndefined()
+    hooks.length = 0
   })
   it('an archived blog retires its post: gone from the website, never deleted', async () => {
     store.set('b1', { ...store.get('b1')!, status: 'archived' })
@@ -128,11 +150,12 @@ describe('importing into a site', () => {
     expect(await post('readerA', 'post:widget-update-b1')).toBeUndefined()
     expect((await post('viewerA', 'post:widget-update-b1'))!.status).toBe('retired')
   })
-  it('publishing it again brings it back', async () => {
+  it('publishing it again brings it back as a draft to approve', async () => {
     store.set('b1', { ...store.get('b1')!, status: 'published' })
     const [r] = await run()
     expect(r.counts.update).toBe(1)
-    expect(await post('readerA', 'post:widget-update-b1')).toBeDefined()
+    expect(await post('readerA', 'post:widget-update-b1')).toBeUndefined()
+    expect(await post('viewerA', 'post:widget-update-b1')).toMatchObject({ status: 'draft', review: { state: 'pending' } })
   })
   it('a dry run writes nothing', async () => {
     store.set('b2', blog('b2'))
@@ -147,7 +170,7 @@ describe('importing into a site', () => {
     const [r] = await run()
     expect(r.ok).toBe(false)
     expect(r.problems.join('\n')).toMatch(/widget-update-bad/)
-    expect(await post('readerA', 'post:widget-update-good')).toBeDefined()
+    expect(await post('viewerA', 'post:widget-update-good')).toBeDefined()
     expect(await post('viewerA', 'post:widget-update-bad')).toBeUndefined()
     store.delete('bad')
   })
@@ -230,15 +253,16 @@ describe('importing a blog file over HTTPS, as the site’s sync account (no dat
   const store = (apiKey = 'test-sync-key-a-0000000000000000000') => restStore({ base: 'http://localhost:3000', apiKey, fetch: restFetch })
 
   it('creates the post through the CMS API, with a receipt, and never retires other posts', async () => {
-    const before = (await visible('posts', 'viewerA')).filter((d) => d.origin === 'ayra-blogs' && d.status === 'approved').length
+    const before = (await visible('posts', 'viewerA')).filter((d) => d.origin === 'ayra-blogs').length
     const [r] = await runBlogImport({
       store: store(), site: 'savelifeai', source: fileSource([blog('file-1', { slug: 'from-a-file' })]), env: {}, fetch: fakeFetch,
     })
     expect(r.problems).toEqual([])
     expect(r.counts).toMatchObject({ create: 1, retire: 0 })
     expect(r.receiptId).toBeTruthy()
-    expect(await post('readerA', 'post:from-a-file')).toBeDefined()
-    const after = (await visible('posts', 'viewerA')).filter((d) => d.origin === 'ayra-blogs' && d.status === 'approved').length
+    expect(await post('viewerA', 'post:from-a-file')).toMatchObject({ status: 'draft' })
+    expect(await post('readerA', 'post:from-a-file')).toBeUndefined()
+    const after = (await visible('posts', 'viewerA')).filter((d) => d.origin === 'ayra-blogs').length
     expect(after).toBe(before + 1)
   })
   it('a second run over HTTPS changes nothing', async () => {
@@ -253,5 +277,71 @@ describe('importing a blog file over HTTPS, as the site’s sync account (no dat
   })
   it('a key cannot reach another site', async () => {
     expect(await store().tenants('junaidkalia')).toEqual([])
+  })
+})
+
+describe('approving and sending back in the control room', () => {
+  const draft = async (id: string) => {
+    store.set(id, blog(id))
+    await run()
+    return (await post('viewerA', `post:widget-update-${id}`))!
+  }
+  const decide = (who: string, postId: number | string, decision: 'approve' | 'send-back') =>
+    decidePost({ payload: ctx.payload, user: ctx.users[who] as never, postId, decision, env, fetch: fakeFetch })
+
+  it('who may approve: admins, and viewers of that site; nobody else', () => {
+    expect(canApprove(ctx.users.admin as never, ctx.tenantA)).toBe(true)
+    expect(canApprove(ctx.users.viewerA as never, ctx.tenantA)).toBe(true)
+    expect(canApprove(ctx.users.viewerA as never, ctx.tenantB)).toBe(false)
+    expect(canApprove(ctx.users.readerA as never, ctx.tenantA)).toBe(false)
+    expect(canApprove(ctx.users.syncA as never, ctx.tenantA)).toBe(false)
+  })
+  it('sending back keeps it off the website, and a re-import does not undo it', async () => {
+    const p = await draft('sb1')
+    expect(await decide('viewerA', p.id, 'send-back')).toMatchObject({ ok: true })
+    expect(await post('viewerA', 'post:widget-update-sb1')).toMatchObject({ status: 'draft', review: { state: 'sent-back', decidedBy: 'viewerA' } })
+    expect(await decide('viewerA', p.id, 'send-back')).toMatchObject({ ok: false, status: 409 })
+    const [r] = await run()
+    expect(r.counts.update).toBe(0)
+    expect((await post('viewerA', 'post:widget-update-sb1'))!.review).toMatchObject({ state: 'sent-back' })
+    // A new version from AyraAgent comes back to the queue.
+    store.set('sb1', blog('sb1', { revision: 2, body_markdown: BODY.replace('## Sources', 'One more paragraph.\n\n## Sources') }))
+    await run()
+    expect((await post('viewerA', 'post:widget-update-sb1'))!.review).toMatchObject({ state: 'pending', revision: '2' })
+    expect(await post('readerA', 'post:widget-update-sb1')).toBeUndefined()
+  })
+  it('an admin can approve any site’s blog, once', async () => {
+    const p = await draft('ad1')
+    expect(await decide('admin', p.id, 'approve')).toMatchObject({ ok: true })
+    expect(await post('readerA', 'post:widget-update-ad1')).toBeDefined()
+    expect(await decide('admin', p.id, 'approve')).toMatchObject({ ok: false, status: 409 })
+    expect(await decide('admin', p.id, 'send-back')).toMatchObject({ ok: false, status: 409 })
+  })
+  it('someone from another site, a website key or the sync account gets "not found"', async () => {
+    const p = await draft('nf1')
+    const other = (await ctx.payload.create({
+      collection: 'users', data: { name: 'viewerB', role: 'editor', email: 'viewerB@example.test', password: 'test-only-password', tenants: [{ tenant: ctx.tenantB }] } as never,
+    })) as never
+    for (const user of [other, ctx.users.readerA, ctx.users.syncA]) {
+      expect(await decidePost({ payload: ctx.payload, user: user as never, postId: p.id, decision: 'approve', env })).toMatchObject({ ok: false, status: 404 })
+    }
+    expect((await post('viewerA', 'post:widget-update-nf1'))!.status).toBe('draft')
+  })
+  it('a post without an author is refused, in the rule’s words', async () => {
+    const p = await draft('na1')
+    await ctx.payload.update({ collection: 'posts', id: p.id, overrideAccess: true, data: { author: { name: '' } } as never })
+    const r = await decide('viewerA', p.id, 'approve')
+    expect(r).toMatchObject({ ok: false, status: 422 })
+    expect((r as { message: string }).message).toMatch(/author/i)
+    expect((await post('viewerA', 'post:widget-update-na1'))!.status).toBe('draft')
+  })
+  it('only AyraAgent blogs are approved here; a post from _ops is left to its own flow', async () => {
+    const [opsPost] = (await visible('posts', 'viewerA')).filter((d) => d.origin === 'ops')
+    expect(opsPost).toBeDefined()
+    expect(await decide('viewerA', opsPost.id, 'approve')).toMatchObject({ ok: false, status: 400 })
+  })
+  it('an approver cannot change anything else about a post through the website’s or the viewer’s own access', async () => {
+    const p = await draft('ro1')
+    await expect(ctx.payload.update({ collection: 'posts', id: p.id, ...asUser('viewerA'), data: { status: 'approved' } as never })).rejects.toThrow()
   })
 })

@@ -24,6 +24,9 @@ export function NavList({ sections, active, onNavigate }: { sections: NavSection
               <>
                 <Icon className={cn('size-[17px] shrink-0', current ? 'text-accent-fg' : 'text-faint group-hover:text-text')} strokeWidth={1.75} aria-hidden />
                 <span className="min-w-0 flex-1 truncate">{item.label}</span>
+                {item.badge ? (
+                  <span className={cn('min-w-5 rounded-full px-1.5 text-center font-mono text-[11px] leading-5 font-semibold', current ? 'bg-white/20 text-accent-fg' : 'bg-warn-soft text-warn')}>{item.badge}</span>
+                ) : null}
                 {item.dot && <Dot tone={toneOf(item.dot)} className={current ? 'ring-2 ring-accent-fg/40' : undefined} />}
               </>
             )

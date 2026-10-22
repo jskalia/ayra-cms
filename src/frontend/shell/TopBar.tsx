@@ -270,7 +270,7 @@ export function TopBar({ sections, active, user, sites, currentSite }: { section
   return (
     <div className="sticky top-0 z-30 flex h-14 items-center gap-2 border-b border-border bg-bg/85 px-4 backdrop-blur-md sm:px-6">
       <PhoneMenu sections={sections} active={active} sites={sites} currentSite={currentSite} />
-      <Link href="/" className="lg:hidden" aria-label="Overview">
+      <Link href="/" className="lg:hidden" aria-label="Blogs">
         <Logo compact />
       </Link>
       <button
@@ -298,7 +298,7 @@ export function TopBar({ sections, active, user, sites, currentSite }: { section
 
 export function PhoneDock({ active }: { active: string }) {
   const items = [
-    { href: '/', label: 'Overview', icon: ICONS.home },
+    { href: '/', label: 'Blogs', icon: ICONS.blogs },
     { href: '/search', label: 'Search', icon: ICONS.search },
     { href: '/receipts', label: 'Receipts', icon: ICONS.receipts },
     { href: '/checks', label: 'Checks', icon: ICONS.checks },

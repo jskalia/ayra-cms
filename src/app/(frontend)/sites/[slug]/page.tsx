@@ -61,7 +61,7 @@ export default async function SitePage({ params, searchParams }: Props) {
   return (
     <Shell session={session} sites={sites} active={`/sites/${slug}`}>
       <PageHeader
-        crumbs={[{ href: '/', label: 'Overview' }, { label: 'Sites' }]}
+        crumbs={[{ href: '/overview', label: 'Overview' }, { label: 'Sites' }]}
         title={site.name}
         meta={
           <>

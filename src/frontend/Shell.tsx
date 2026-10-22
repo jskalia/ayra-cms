@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import type { ReactNode } from 'react'
 
+import { pendingBlogs } from './blogs'
 import type { Session } from './session'
 import { Logo } from './shell/Logo'
 import type { NavSection, ShellSite } from './shell/nav'
@@ -12,22 +13,21 @@ import { PhoneDock, SiteSwitcher, TopBar } from './shell/TopBar'
  * switcher and grouped links; a top bar with ⌘K search, Ask Ayra, theme and account; on a phone,
  * a slide-in menu and a bottom dock. `active` is the href of the current page.
  */
-export function Shell({ session, sites, active, children }: { session: Session; sites: ShellSite[]; active: string; children: ReactNode }) {
+export async function Shell({ session, sites, active, children }: { session: Session; sites: ShellSite[]; active: string; children: ReactNode }) {
+  const pending = await pendingBlogs(session)
   const sections: NavSection[] = [
     {
-      title: 'Workspace',
-      items: [
-        { href: '/', label: 'Overview', icon: 'home' },
-        { href: '/search', label: 'Search', icon: 'search' },
-      ],
+      items: [{ href: '/', label: 'Blogs', icon: 'blogs', badge: pending }],
     },
     {
       title: 'Sites',
       items: sites.map((s) => ({ href: `/sites/${s.slug}`, label: s.name, icon: 'site', dot: s.status ?? 'none' })),
     },
     {
-      title: 'Operations',
+      title: 'More',
       items: [
+        { href: '/overview', label: 'Overview', icon: 'home' },
+        { href: '/search', label: 'Search', icon: 'search' },
         { href: '/receipts', label: 'Sync receipts', icon: 'receipts' },
         { href: '/checks', label: 'Checks', icon: 'checks' },
       ],
@@ -45,14 +45,14 @@ export function Shell({ session, sites, active, children }: { session: Session; 
   return (
     <div className="min-h-dvh lg:grid lg:grid-cols-[252px_1fr]">
       <aside className="cr-scroll sticky top-0 hidden h-dvh flex-col gap-5 overflow-y-auto border-r border-border bg-sidebar px-3 py-4 lg:flex">
-        <Link href="/" className="px-1.5 pt-0.5" aria-label="Ayra CMS overview">
+        <Link href="/" className="px-1.5 pt-0.5" aria-label="Ayra CMS, blogs">
           <Logo />
         </Link>
         <SiteSwitcher sites={sites} current={currentSite} />
         <NavList sections={sections} active={active} />
         <div className="mt-auto rounded-[12px] border border-border bg-surface px-3 py-2.5 text-[12px] text-muted">
           <p className="font-semibold text-text">Ayra CMS</p>
-          <p>Content comes in only through the sync; this view is read-only.</p>
+          <p>Blogs come in from AyraAgent. A person approves them here.</p>
         </div>
       </aside>
       <div className="flex min-w-0 flex-col">

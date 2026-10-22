@@ -691,6 +691,25 @@ export interface Post {
     at?: string | null;
     version?: string | null;
   };
+  /**
+   * The approval of an AyraAgent blog: written by the import and the control room.
+   */
+  review?: {
+    /**
+     * pending, sent-back or approved.
+     */
+    state?: string | null;
+    /**
+     * The AyraAgent blog revision this text is.
+     */
+    revision?: string | null;
+    /**
+     * An earlier version of this blog was approved; this is an edit awaiting approval.
+     */
+    previouslyApproved?: boolean | null;
+    decidedBy?: string | null;
+    decidedAt?: string | null;
+  };
   owner?: string | null;
   reviewBy?: string | null;
   /**
@@ -2272,6 +2291,15 @@ export interface PostsSelect<T extends boolean = true> {
         by?: T;
         at?: T;
         version?: T;
+      };
+  review?:
+    | T
+    | {
+        state?: T;
+        revision?: T;
+        previouslyApproved?: T;
+        decidedBy?: T;
+        decidedAt?: T;
       };
   owner?: T;
   reviewBy?: T;

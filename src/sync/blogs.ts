@@ -6,16 +6,20 @@
  *
  *  1. For each site whose `ayraBlogs.org` is set, read that org's blogs from the AyraAgent API
  *     with a read-only service token (env var named by `ayraBlogs.tokenEnv`; never stored here).
- *  2. Each **published** blog becomes an approved, public post, written by the site's sync
- *     account (people still never write content). The body is cleaned for the public site: the
+ *  2. Each **published** blog becomes a **draft** post (waiting for approval in the control
+ *     room), written by the site's sync account (people still never write content). A person
+ *     approves it there (src/sync/approval.ts); only then do websites see it. A blog edited in
+ *     AyraAgent after approval comes back as a draft. The body is cleaned for the public site: the
  *     internal "## Sources" list, the [^n] markers and placeholder images are removed; the cited
  *     sources are kept in an internal field the websites never see.
  *  3. A blog that is no longer published (archived, back to draft, gone) retires its post:
  *     hidden from websites, never deleted.
  *  4. A receipt is filed (only when something changed or went wrong), and the site's preview
- *     deploy hook is called when posts changed. A person still promotes production.
+ *     deploy hook is called when what websites see changed (a live post edited or retired). A
+ *     person still promotes production.
  *
- * Unchanged blogs are skipped by a fingerprint of the mapped post, so running it often is cheap.
+ * Unchanged blogs are skipped by a fingerprint of the mapped content (not the approval state),
+ * so running it often is cheap and never undoes a decision.
  */
 import { randomBytes } from 'node:crypto'
 import type { Payload, TypedUser, Where } from 'payload'
@@ -104,7 +108,7 @@ const cut = (value: string | null | undefined, max: number) => {
 export type BlogAuthor = { name?: string | null; jobTitle?: string | null; url?: string | null }
 
 /** One published AyraAgent blog as this CMS's post record. */
-export function mapBlog(blog: AyraBlog, author: BlogAuthor, org: string): Record<string, unknown> {
+export function mapBlog(blog: AyraBlog, author: BlogAuthor): Record<string, unknown> {
   const slug = postSlug(blog.slug || blog.title)
   const description = blog.summary || blog.seo?.meta_description || ''
   return {
@@ -118,8 +122,8 @@ export function mapBlog(blog: AyraBlog, author: BlogAuthor, org: string): Record
     publishedAt: blog.published_at ?? undefined,
     seo: { title: cut(blog.title, 60), description: cut(description, 155) || undefined, canonical: blog.seo?.canonical_url || undefined },
     visibility: 'public',
-    status: 'approved',
-    approved: { by: `AyraAgent Blogs (${org})`, at: (blog.published_at ?? '').slice(0, 10), version: String(blog.revision) },
+    status: 'draft',
+    review: { state: 'pending', revision: String(blog.revision), previouslyApproved: false },
     origin: 'ayra-blogs',
     externalId: blog.id,
     sources: (blog.sources ?? []).map((s) => ({
@@ -148,7 +152,15 @@ export type Tenant = {
   deployHookEnv?: string | null
   ayraBlogs?: { org?: string | null; tokenEnv?: string | null; author?: BlogAuthor | null } | null
 }
-export type PostDoc = { id: number | string; recordId: string; status: string; origin?: string; externalId?: string; sync?: { sourceSha256?: string } }
+export type PostDoc = {
+  id: number | string
+  recordId: string
+  status: string
+  origin?: string
+  externalId?: string
+  sync?: { sourceSha256?: string }
+  review?: { previouslyApproved?: boolean | null } | null
+}
 
 /** What the import writes through, as the site's sync account. */
 export interface SiteWriter {
@@ -311,6 +323,7 @@ export async function runBlogImport(opts: ImportOptions): Promise<SiteImport[]> 
     const author = tenant.ayraBlogs?.author ?? {}
 
     const plan: { item: BlogItem; id?: number | string; data?: Record<string, unknown> }[] = []
+    let hidesLive = false // an approved post is edited or retired: what websites see changes
     const published = blogs.filter((b) => b.status === 'published')
     if (published.length && !author.name) result.problems.push('no author: set ayraBlogs.author.name (a real person, for BlogPosting JSON-LD)')
     else {
@@ -319,7 +332,7 @@ export async function runBlogImport(opts: ImportOptions): Promise<SiteImport[]> 
         try {
           const blog = await source.get(summary.id)
           const existing = byExternal.get(blog.id)
-          const data = mapBlog(blog, author, org)
+          const data = mapBlog(blog, author)
           if (existing) {
             // A post's record id and slug never change after it is created (pages cite them).
             data.recordId = existing.recordId
@@ -328,8 +341,18 @@ export async function runBlogImport(opts: ImportOptions): Promise<SiteImport[]> 
             result.problems.push(`${blog.title}: its slug "${data.slug}" is already used by another post in this site; not imported`)
             continue
           }
-          const fingerprint = sha256(canonical(data))
-          const action: BlogAction = !existing ? 'create' : existing.sync?.sourceSha256 === fingerprint && existing.status === 'approved' ? 'unchanged' : 'update'
+          // The fingerprint covers the content, never the approval, so a re-import cannot undo a decision.
+          const { status: _s, review: _r, ...content } = data
+          const fingerprint = sha256(canonical(content))
+          const same = existing?.sync?.sourceSha256 === fingerprint
+          const action: BlogAction = !existing ? 'create' : same && existing.status !== 'retired' ? 'unchanged' : 'update'
+          if (existing && action === 'update') {
+            // Edited (or published again): back to the approval queue; a live post stops being live until approved.
+            const wasApproved = existing.status === 'approved'
+            if (wasApproved) hidesLive = true
+            data.approved = { by: null, at: null, version: null }
+            data.review = { ...(data.review as object), previouslyApproved: wasApproved || Boolean(existing.review?.previouslyApproved) }
+          }
           plan.push({ item: { collection: 'posts', recordId: String(data.recordId), sourcePath, sha256: fingerprint, action }, id: existing?.id, data })
         } catch (err) {
           result.problems.push(`${summary.title}: ${err instanceof Error ? err.message : String(err)}`)
@@ -341,6 +364,7 @@ export async function runBlogImport(opts: ImportOptions): Promise<SiteImport[]> 
       const live = new Set(published.map((b) => b.id))
       for (const [externalId, post] of byExternal) {
         if (!live.has(externalId) && post.status !== 'retired') {
+          if (post.status === 'approved') hidesLive = true
           plan.push({
             item: { collection: 'posts', recordId: post.recordId, sourcePath: `ayra-blogs/${org}/${externalId}`, sha256: post.sync?.sourceSha256 ?? '', action: 'retire' },
             id: post.id,
@@ -388,19 +412,24 @@ export async function runBlogImport(opts: ImportOptions): Promise<SiteImport[]> 
       result.receiptId = receiptId
     }
 
-    if (changed) {
-      const hook = tenant.deployHookEnv ? env[tenant.deployHookEnv] : undefined
-      if (!hook) result.deployHook = 'not set'
-      else {
-        try {
-          const res = await (opts.fetch ?? fetch)(hook, { method: 'POST' })
-          result.deployHook = res.ok ? 'called' : 'failed'
-        } catch {
-          result.deployHook = 'failed'
-        }
-      }
-    }
+    // New drafts change nothing on the website; only a live post being edited or retired does.
+    if (changed && hidesLive) result.deployHook = await callDeployHook(tenant, env, opts.fetch)
     return result
+  }
+}
+
+/** Starts the site's preview deploy (a person still promotes production). */
+export async function callDeployHook(
+  tenant: Pick<Tenant, 'deployHookEnv'>,
+  env: Record<string, string | undefined> = process.env,
+  doFetch: typeof fetch = fetch,
+): Promise<'called' | 'failed' | 'not set'> {
+  const hook = tenant.deployHookEnv ? env[tenant.deployHookEnv] : undefined
+  if (!hook) return 'not set'
+  try {
+    return (await doFetch(hook, { method: 'POST' })).ok ? 'called' : 'failed'
+  } catch {
+    return 'failed'
   }
 }
 

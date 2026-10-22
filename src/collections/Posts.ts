@@ -117,6 +117,26 @@ export const Posts: CollectionConfig = {
         { name: 'version', type: 'text' },
       ],
     },
+    {
+      // Where an AyraAgent blog stands in the control room's approval (Phase 12). The import
+      // writes pending; a signed-in approver writes the decision (src/sync/approval.ts).
+      name: 'review',
+      type: 'group',
+      access: internalRead,
+      admin: { description: 'The approval of an AyraAgent blog: written by the import and the control room.' },
+      fields: [
+        {
+          name: 'state',
+          type: 'text',
+          validate: (v: unknown) => (v === undefined || v === null || v === '' || ['pending', 'sent-back', 'approved'].includes(String(v)) ? true : 'Must be pending, sent-back or approved.'),
+          admin: { description: 'pending, sent-back or approved.' },
+        },
+        { name: 'revision', type: 'text', admin: { description: 'The AyraAgent blog revision this text is.' } },
+        { name: 'previouslyApproved', type: 'checkbox', defaultValue: false, admin: { description: 'An earlier version of this blog was approved; this is an edit awaiting approval.' } },
+        { name: 'decidedBy', type: 'text' },
+        { name: 'decidedAt', type: 'text' },
+      ],
+    },
     { name: 'owner', type: 'text' },
     { name: 'reviewBy', type: 'text' },
     {
