@@ -10,11 +10,14 @@ const swap = `
 
 export function Logo() {
   return (
-    <span className="ayra-graphic" style={{ display: 'inline-flex', flexDirection: 'column', gap: 10, alignItems: 'flex-start' }}>
+    <span className="ayra-graphic" style={{ display: 'inline-flex', flexDirection: 'column', gap: 8, alignItems: 'flex-start' }}>
       <style>{swap}</style>
-      <img className="on-light" src="/brand/ayraagent-logo-light.svg" alt="AyraAgent" style={{ height: 34, width: 'auto' }} />
-      <img className="on-dark" src="/brand/ayraagent-logo-dark.svg" alt="AyraAgent" style={{ height: 34, width: 'auto' }} />
-      <span style={{ fontSize: 13, opacity: 0.65, letterSpacing: '0.02em' }}>CMS · accounts and keys</span>
+      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 10 }}>
+        <img className="on-light" src="/brand/ayraagent-mark-light.svg" alt="" style={{ height: 34, width: 34 }} />
+        <img className="on-dark" src="/brand/ayraagent-mark-dark.svg" alt="" style={{ height: 34, width: 34 }} />
+        <span style={{ fontSize: 24, fontWeight: 700, letterSpacing: '-0.02em' }}>Ayra CMS</span>
+      </span>
+      <span style={{ fontSize: 13, opacity: 0.65, letterSpacing: '0.02em' }}>Accounts and keys</span>
     </span>
   )
 }

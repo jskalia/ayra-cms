@@ -58,12 +58,33 @@ function Hub() {
   )
 }
 
-export function SignIn({ next }: { next: string }) {
+const GOOGLE_PROBLEMS: Record<string, string> = {
+  'google-not-invited': 'That Google account isn’t invited. Use your @neurocare.ai account, or ask an admin to add you.',
+  'google-unverified': 'Google says that email address isn’t verified.',
+  'google-role': 'That account signs in with an API key, not with Google.',
+  'google-denied': 'Google sign-in was cancelled.',
+  'google-failed': 'Google sign-in didn’t finish. Try again.',
+  'google-not-configured': 'Google sign-in isn’t set up yet.',
+  'google-origin': 'Google sign-in can’t be used from this address.',
+}
+
+function GoogleMark() {
+  return (
+    <svg viewBox="0 0 48 48" className="size-[18px]" aria-hidden>
+      <path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.6l6.8-6.8C35.8 2.4 30.3 0 24 0 14.6 0 6.5 5.4 2.6 13.2l7.9 6.1C12.4 13.6 17.7 9.5 24 9.5z" />
+      <path fill="#4285F4" d="M46.1 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.4c-.5 2.9-2.2 5.3-4.6 6.9l7.4 5.7c4.3-4 6.9-9.9 6.9-17.1z" />
+      <path fill="#FBBC05" d="M10.5 28.7c-.5-1.4-.8-2.9-.8-4.7s.3-3.3.8-4.7l-7.9-6.1C.9 16.4 0 20.1 0 24s.9 7.6 2.6 10.8l7.9-6.1z" />
+      <path fill="#34A853" d="M24 48c6.5 0 11.9-2.1 15.9-5.8l-7.4-5.7c-2.1 1.4-4.8 2.3-8.5 2.3-6.3 0-11.6-4.1-13.5-9.8l-7.9 6.1C6.5 42.6 14.6 48 24 48z" />
+    </svg>
+  )
+}
+
+export function SignIn({ next, google = false, problem }: { next: string; google?: boolean; problem?: string }) {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [show, setShow] = useState(false)
   const [busy, setBusy] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(problem ? GOOGLE_PROBLEMS[problem] ?? null : null)
 
   async function submit(e: FormEvent) {
     e.preventDefault()
@@ -116,7 +137,20 @@ export function SignIn({ next }: { next: string }) {
             <h2 className="text-[1.75rem] leading-tight font-semibold tracking-[-0.03em]">Sign in to Ayra CMS</h2>
             <p className="pt-1.5 text-[14px] leading-relaxed text-muted">One account for every site’s content, receipts and checks.</p>
 
-            <form onSubmit={submit} className="mt-7 flex flex-col gap-4" noValidate>
+            {google && (
+              <>
+                <a
+                  href={`/auth/google?redirect=${encodeURIComponent(next)}`}
+                  className="mt-7 flex h-11 w-full items-center justify-center gap-2.5 rounded-[6px] border border-border-strong bg-surface text-[14px] font-medium transition-colors hover:bg-surface-2"
+                >
+                  <GoogleMark /> Continue with Google
+                </a>
+                <div className="mt-5 flex items-center gap-3 text-[11.5px] text-faint" aria-hidden>
+                  <span className="h-px flex-1 bg-border" /> or with a password <span className="h-px flex-1 bg-border" />
+                </div>
+              </>
+            )}
+            <form onSubmit={submit} className={cn('flex flex-col gap-4', google ? 'mt-5' : 'mt-7')} noValidate>
               <div className="flex flex-col gap-1.5">
                 <label htmlFor="cr-email" className="text-[12px] font-medium">
                   Email
