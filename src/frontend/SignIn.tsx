@@ -108,7 +108,7 @@ export function SignIn({ next }: { next: string }) {
 
         <section className="flex flex-col bg-gradient-to-b from-transparent to-accent/[0.04] p-8 sm:p-10">
           <div>
-            <Logo />
+            <Logo compact />
             <p className="mt-1.5 text-[11px] text-muted">Trouble signing in? Ask an admin.</p>
           </div>
 
