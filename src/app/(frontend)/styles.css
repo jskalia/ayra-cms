@@ -160,7 +160,9 @@
   max-width: 72ch;
   color: var(--text);
 }
-.cr-prose > * + * {
+/* Payload's RichText wraps the content in one div.payload-richtext; space its children too. */
+.cr-prose > * + *,
+.cr-prose > .payload-richtext > * + * {
   margin-top: 0.9em;
 }
 .cr-prose h1,

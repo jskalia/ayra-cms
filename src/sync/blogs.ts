@@ -33,7 +33,7 @@ export type AyraBlog = {
   published_at?: string | null
   body_markdown?: string | null
   sources?: { n?: number; file_name?: string; source_path?: string; sha256?: string; excerpt?: string }[] | null
-  seo?: { slug?: string; meta_description?: string; keywords?: string[] } | null
+  seo?: { slug?: string; meta_description?: string; keywords?: string[]; canonical_url?: string } | null
   settings?: { keywords?: string[] } | null
 }
 
@@ -116,7 +116,7 @@ export function mapBlog(blog: AyraBlog, author: BlogAuthor, org: string): Record
     author: { name: author.name ?? undefined, jobTitle: author.jobTitle ?? undefined, url: author.url ?? undefined },
     tags: blog.settings?.keywords ?? blog.seo?.keywords ?? [],
     publishedAt: blog.published_at ?? undefined,
-    seo: { title: cut(blog.title, 60), description: cut(description, 155) || undefined },
+    seo: { title: cut(blog.title, 60), description: cut(description, 155) || undefined, canonical: blog.seo?.canonical_url || undefined },
     visibility: 'public',
     status: 'approved',
     approved: { by: `AyraAgent Blogs (${org})`, at: (blog.published_at ?? '').slice(0, 10), version: String(blog.revision) },
