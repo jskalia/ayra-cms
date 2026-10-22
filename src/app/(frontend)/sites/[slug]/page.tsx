@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import type { CollectionSlug, Where } from 'payload'
 
+import { ABOUT, SITE_INTRO } from '../../../../frontend/about'
 import { SORTS, TABS } from '../../../../frontend/columns'
 import { SITE_COLLECTIONS, siteSummary, sitesWithStatus, when } from '../../../../frontend/data'
 import { as, requireSession } from '../../../../frontend/session'
@@ -63,6 +64,7 @@ export default async function SitePage({ params, searchParams }: Props) {
       <PageHeader
         crumbs={[{ href: '/overview', label: 'Overview' }, { label: 'Sites' }]}
         title={site.name}
+        sub={SITE_INTRO}
         meta={
           <>
             <StatusBadge value={summary.status} tone={toneOf(summary.status)} />
@@ -121,6 +123,18 @@ export default async function SitePage({ params, searchParams }: Props) {
       </nav>
 
       <Card i={1}>
+        {ABOUT[tab] && (
+          <div className="flex flex-wrap items-start justify-between gap-x-6 gap-y-1 border-b border-border bg-surface-2/40 px-4 py-3 text-[13px]">
+            <p className="max-w-[78ch] text-muted">
+              <span className="font-semibold text-text">{SITE_COLLECTIONS.find((c) => c.slug === tab)?.label}.</span> {ABOUT[tab].what} <span className="text-faint">{ABOUT[tab].from}</span>
+            </p>
+            {ABOUT[tab].link && (
+              <Link href={ABOUT[tab].link!.href(slug)} className="font-semibold whitespace-nowrap text-accent hover:underline">
+                {ABOUT[tab].link!.label} →
+              </Link>
+            )}
+          </div>
+        )}
         <form action={`/sites/${slug}`} className="flex flex-wrap items-center gap-2 border-b border-border p-3">
           <input type="hidden" name="tab" value={tab} />
           {sort && <input type="hidden" name="sort" value={sort} />}
@@ -154,7 +168,7 @@ export default async function SitePage({ params, searchParams }: Props) {
 
         {result.docs.length === 0 ? (
           <EmptyState title={filtered ? 'Nothing matches these filters' : 'Nothing here yet'}>
-            {filtered ? 'Try fewer filters, or clear them.' : 'Records of this kind arrive with the next sync from _ops.'}
+            {filtered ? 'Try fewer filters, or clear them.' : tab === 'posts' ? 'Blogs from AyraAgent show up here and in the Blogs inbox; posts from the ops folder arrive with its sync.' : `Nothing has arrived yet. ${ABOUT[tab]?.from ?? 'Records of this kind arrive with the next sync from _ops.'}`}
           </EmptyState>
         ) : (
           <>
