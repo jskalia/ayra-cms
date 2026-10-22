@@ -1,6 +1,8 @@
 /** What each tab on a site's page holds, in plain words (shown above its list and in its empty state). */
 export type About = { what: string; from: string; link?: { href: (site: string) => string; label: string } }
 
+export const SITE_INTRO_EMPTY =
+  'Blogs for this site are read and approved in the Blogs inbox. Pages, claims and the other content types will appear here once the ops sync has run.'
 export const SITE_INTRO =
   'Everything this site’s content is made of. Blogs are read and approved in the Blogs inbox; the rest comes from the ops folder through the sync, and is shown here read-only.'
 

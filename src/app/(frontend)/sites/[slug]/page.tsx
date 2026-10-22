@@ -3,7 +3,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import type { CollectionSlug, Where } from 'payload'
 
-import { ABOUT, SITE_INTRO } from '../../../../frontend/about'
+import { ABOUT, SITE_INTRO, SITE_INTRO_EMPTY } from '../../../../frontend/about'
 import { SORTS, TABS } from '../../../../frontend/columns'
 import { SITE_COLLECTIONS, siteSummary, sitesWithStatus, when } from '../../../../frontend/data'
 import { as, requireSession } from '../../../../frontend/session'
@@ -35,7 +35,10 @@ export default async function SitePage({ params, searchParams }: Props) {
     : undefined
   const blogsOrg = tenantDoc?.ayraBlogs?.org || undefined
 
-  const tab = (SITE_COLLECTIONS.find((c) => c.slug === query.tab)?.slug ?? 'pages') as string
+  // Only kinds that hold records are listed (Posts always, for blogs); the rest appear once the sync brings them.
+  const shown = SITE_COLLECTIONS.filter((c) => c.slug === 'posts' || summary.counts[c.slug] > 0)
+  const firstWithRecords = shown.find((c) => summary.counts[c.slug] > 0)?.slug ?? 'posts'
+  const tab = (shown.find((c) => c.slug === query.tab)?.slug ?? firstWithRecords) as string
   const def = TABS[tab]
   const sorts = SORTS[tab] ?? {}
   const sort = Object.values(sorts).some((f) => query.sort === f || query.sort === `-${f}`) ? query.sort : undefined
@@ -64,7 +67,7 @@ export default async function SitePage({ params, searchParams }: Props) {
       <PageHeader
         crumbs={[{ href: '/overview', label: 'Overview' }, { label: 'Sites' }]}
         title={site.name}
-        sub={SITE_INTRO}
+        sub={shown.some((c) => c.slug !== 'posts') ? SITE_INTRO : SITE_INTRO_EMPTY}
         meta={
           <>
             <StatusBadge value={summary.status} tone={toneOf(summary.status)} />
@@ -102,7 +105,7 @@ export default async function SitePage({ params, searchParams }: Props) {
       )}
 
       <nav aria-label="Record kinds" className="cr-scroll cr-rise -mx-1 mb-4 flex gap-1 overflow-x-auto px-1 pb-1">
-        {SITE_COLLECTIONS.map((c) => {
+        {shown.map((c) => {
           const current = c.slug === tab
           return (
             <Link
@@ -168,7 +171,7 @@ export default async function SitePage({ params, searchParams }: Props) {
 
         {result.docs.length === 0 ? (
           <EmptyState title={filtered ? 'Nothing matches these filters' : 'Nothing here yet'}>
-            {filtered ? 'Try fewer filters, or clear them.' : tab === 'posts' ? 'Blogs from AyraAgent show up here and in the Blogs inbox; posts from the ops folder arrive with its sync.' : `Nothing has arrived yet. ${ABOUT[tab]?.from ?? 'Records of this kind arrive with the next sync from _ops.'}`}
+            {filtered ? 'Try fewer filters, or clear them.' : tab === 'posts' ? 'No posts yet. Blogs from AyraAgent show up here, and in the Blogs inbox where you approve them.' : `Nothing has arrived yet. ${ABOUT[tab]?.from ?? 'Records of this kind arrive with the next sync from _ops.'}`}
           </EmptyState>
         ) : (
           <>
