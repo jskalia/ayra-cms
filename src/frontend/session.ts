@@ -24,7 +24,7 @@ export async function requireSession(path: string): Promise<Session> {
   const role = (user as { role?: string } | null)?.role
   // Website and sync accounts never sign in with a password, but check anyway.
   if (!user || (role !== 'admin' && role !== 'editor')) {
-    redirect(`/admin/login?redirect=${encodeURIComponent(path)}`)
+    redirect(`/sign-in?redirect=${encodeURIComponent(path)}`)
   }
   return { payload, user: user as Session['user'], isAdmin: role === 'admin' }
 }

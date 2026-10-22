@@ -14,7 +14,7 @@ export async function POST(request: Request) {
     const req = await createLocalReq({ user }, payload)
     await logoutOperation({ collection: payload.collections.users, req }).catch(() => undefined)
   }
-  const res = NextResponse.redirect(new URL('/admin/login', request.url), 303)
+  const res = NextResponse.redirect(new URL('/sign-in', request.url), 303)
   res.cookies.set(`${payload.config.cookiePrefix}-token`, '', { path: '/', maxAge: 0, httpOnly: true, sameSite: 'lax' })
   return res
 }
