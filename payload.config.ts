@@ -97,6 +97,7 @@ export default buildConfig({
         Logo: '/src/components/admin/Graphics#Logo',
         Icon: '/src/components/admin/Graphics#Icon',
       },
+      beforeNavLinks: ['/src/components/admin/BackToControlRoom#BackToControlRoom'],
     },
     importMap: {
       baseDir: path.resolve(dirname),
@@ -199,7 +200,11 @@ export default buildConfig({
 
   // ADD NEW COLLECTIONS AT THE END. Payload numbers compound-index names by position
   // (tenant_recordId_1_idx, …), so inserting one earlier renames existing indexes in the DB.
-  collections: [Users, Tenants, SiteSettings, Products, Claims, Atoms, Posts, Media, Pages, WhatsNew, SyncReceipts, Legal, Decks, TrustDocuments, ConsentRecords, Audiences, Workflows],
+  // /admin is for accounts and sites only; content is read in the control room, so the other
+  // collections are hidden from its nav and dashboard (the API and access rules are unchanged).
+  collections: [Users, Tenants, SiteSettings, Products, Claims, Atoms, Posts, Media, Pages, WhatsNew, SyncReceipts, Legal, Decks, TrustDocuments, ConsentRecords, Audiences, Workflows].map((c) =>
+    c.slug === 'users' || c.slug === 'tenants' ? c : { ...c, admin: { ...c.admin, hidden: true } },
+  ),
 
   secret: requiredSecret(),
 

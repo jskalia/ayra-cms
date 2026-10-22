@@ -21,10 +21,10 @@ export function Logo() {
 
 export function Icon() {
   return (
-    <span className="ayra-graphic" style={{ display: 'inline-flex' }}>
+    <span className="ayra-graphic" style={{ display: 'block', width: 18, height: 18 }}>
       <style>{swap}</style>
-      <img className="on-light" src="/brand/ayraagent-mark-light.svg" alt="AyraAgent" style={{ height: 26, width: 26 }} />
-      <img className="on-dark" src="/brand/ayraagent-mark-dark.svg" alt="AyraAgent" style={{ height: 26, width: 26 }} />
+      <img className="on-light" src="/brand/ayraagent-mark-light.svg" alt="" width={18} height={18} style={{ width: 18, height: 18, objectFit: 'contain' }} />
+      <img className="on-dark" src="/brand/ayraagent-mark-dark.svg" alt="" width={18} height={18} style={{ width: 18, height: 18, objectFit: 'contain' }} />
     </span>
   )
 }
