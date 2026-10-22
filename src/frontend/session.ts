@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation'
 import { getPayload } from 'payload'
 
 import config from '../../payload.config'
+import { tenantIdsOf } from '../sync/approval'
 import type { Session } from './access'
 
 export { as, type Session } from './access'
@@ -26,5 +27,8 @@ export async function requireSession(path: string): Promise<Session> {
   if (!user || (role !== 'admin' && role !== 'editor')) {
     redirect(`/sign-in?redirect=${encodeURIComponent(path)}`)
   }
+  // A person with no sites assigned cannot read anything here (the CMS refuses the very first query),
+  // so say so on a page of its own instead of failing on whichever page they opened.
+  if (role === 'editor' && tenantIdsOf(user as never).length === 0) redirect('/no-access')
   return { payload, user: user as Session['user'], isAdmin: role === 'admin' }
 }

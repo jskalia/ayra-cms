@@ -7,7 +7,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 import { blogsApi, cleanBody, fileSource, mapBlog, postSlug, restStore, runBlogImport, type AyraBlog, type BlogsApi } from '../src/sync/blogs'
-import { canApprove, decidePost } from '../src/sync/approval'
+import { canApprove, decidePost, tenantIdsOf } from '../src/sync/approval'
 import { asUser, ctx, setup, teardown, visible } from './setup'
 
 beforeAll(setup, 180_000)
@@ -295,6 +295,11 @@ describe('approving and sending back in the control room', () => {
     expect(canApprove(ctx.users.viewerA as never, ctx.tenantB)).toBe(false)
     expect(canApprove(ctx.users.readerA as never, ctx.tenantA)).toBe(false)
     expect(canApprove(ctx.users.syncA as never, ctx.tenantA)).toBe(false)
+  })
+  it('knows which sites an account has (none: the control room shows its “no sites yet” page, not an error)', () => {
+    expect(tenantIdsOf(ctx.users.viewerA as never)).toEqual([String(ctx.tenantA)])
+    expect(tenantIdsOf({ id: 1, role: 'editor', tenants: [] })).toEqual([])
+    expect(tenantIdsOf({ id: 1, role: 'editor' })).toEqual([])
   })
   it('sending back keeps it off the website, and a re-import does not undo it', async () => {
     const p = await draft('sb1')
