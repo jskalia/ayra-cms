@@ -43,19 +43,23 @@ export async function Shell({ session, sites, active, children }: { session: Ses
   }
 
   return (
-    <div className="min-h-dvh lg:grid lg:grid-cols-[252px_1fr]">
-      <aside className="cr-scroll sticky top-0 hidden h-dvh flex-col gap-5 overflow-y-auto border-r border-border bg-sidebar px-3 py-4 lg:flex">
+    <div className="min-h-dvh lg:grid lg:h-dvh lg:grid-cols-[252px_1fr] lg:overflow-hidden">
+      <aside className="cr-scroll hidden h-dvh flex-col gap-5 overflow-y-auto border-r border-border bg-sidebar px-3 py-4 lg:flex">
         <Link href="/" className="px-1.5 pt-0.5" aria-label="Ayra CMS, blogs">
           <Logo />
         </Link>
         <SiteSwitcher sites={sites} current={currentSite} />
         <NavList sections={sections} active={active} />
       </aside>
-      <div className="flex min-w-0 flex-col">
+      {/* On a desktop the frame (sidebar and top bar) fills the screen and never moves; only this area
+          scrolls, and its scrollbar space is reserved so pages do not shift sideways. */}
+      <div className="flex min-w-0 flex-col lg:h-dvh lg:min-h-0">
         <TopBar sections={sections} active={active} user={user} sites={sites} currentSite={currentSite} />
-        <main id="main" className="mx-auto w-full max-w-[1320px] flex-1 px-4 pt-6 pb-24 sm:px-6 lg:px-8 lg:pb-10">
-          {children}
-        </main>
+        <div id="cr-scroll" className="cr-scroll flex flex-1 flex-col lg:min-h-0 lg:overflow-y-auto lg:[scrollbar-gutter:stable]">
+          <main id="main" className="mx-auto w-full max-w-[1320px] flex-1 px-4 pt-6 pb-24 sm:px-6 lg:px-8 lg:pb-10">
+            {children}
+          </main>
+        </div>
       </div>
       <PhoneDock active={active} />
       <form id="cr-sign-out" action="/sign-out" method="post" hidden />

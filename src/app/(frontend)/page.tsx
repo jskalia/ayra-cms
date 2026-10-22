@@ -78,7 +78,7 @@ export default async function Blogs({ searchParams }: Props) {
         </nav>
       )}
 
-      <Card i={1} className="overflow-hidden">
+      <Card i={1} className="overflow-hidden lg:min-h-[420px]">
         <nav aria-label="Blog status" className="flex gap-1 overflow-x-auto border-b border-border px-3">
           {BLOG_TABS.map(({ key, label }) => {
             const on = key === tab
