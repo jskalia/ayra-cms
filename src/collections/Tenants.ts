@@ -9,6 +9,8 @@ import { internalRead } from '../fields/record'
  */
 export const Tenants: CollectionConfig = {
   slug: 'tenants',
+  // Everywhere else in the CMS a tenant is called a site.
+  labels: { singular: 'Site', plural: 'Sites' },
   lockDocuments: false,
   admin: {
     useAsTitle: 'name',
