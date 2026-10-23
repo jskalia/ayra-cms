@@ -34,7 +34,7 @@ export default async function Blogs({ searchParams }: Props) {
     const qs = next.toString()
     return qs ? `/?${qs}` : '/'
   }
-  const importMessage = query.import?.slice(0, 300)
+  const importMessage = query.import?.slice(0, 600)
 
   return (
     <Shell session={session} sites={sites} active="/">

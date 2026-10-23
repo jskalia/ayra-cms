@@ -14,13 +14,15 @@ export async function POST(request: Request) {
   })
   const q = new URLSearchParams()
   if (site) q.set('site', site)
-  // Name the site, so a setup problem on one of several sites can be found.
-  const problem = results.flatMap((r) => r.problems.map((p) => `${r.site}: ${p}`))[0]
+  // One line per site, so a setup problem on one site never hides what another site imported.
   if (!results.length) q.set('import', 'not-configured')
-  else if (problem) q.set('import', `problem: ${problem}`)
   else {
-    const sum = (k: 'create' | 'update' | 'retire' | 'unchanged') => results.reduce((n, r) => n + r.counts[k], 0)
-    q.set('import', `${sum('create')} new · ${sum('update')} updated · ${sum('retire')} retired · ${sum('unchanged')} unchanged`)
+    const line = (r: (typeof results)[number]) =>
+      r.problems.length
+        ? `${r.site}: ${r.problems[0]}`
+        : `${r.site}: ${r.counts.create} new · ${r.counts.update} updated · ${r.counts.retire} retired · ${r.counts.unchanged} unchanged`
+    const text = results.map(line).join('  |  ')
+    q.set('import', results.some((r) => r.problems.length) ? `problem: ${text}` : text)
   }
   // 303: after a form POST, the browser follows with a GET (a 307 would repeat the POST).
   return Response.redirect(new URL(`/?${q.toString()}`, request.url), 303)
