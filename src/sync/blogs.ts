@@ -2,18 +2,20 @@
  * AyraAgent Blogs → this site's posts.
  *
  * Blogs are written in AyraAgent (its Blogs page: a brief, a template, and a draft grounded in
- * the organization's ops folder) and published there by an org admin. This imports them:
+ * the organization's ops folder). The CMS is where a person approves them, so this imports drafts
+ * as well as published blogs (AyraAgent's own Publish click is not needed):
  *
  *  1. For each site whose `ayraBlogs.org` is set, read that org's blogs from the AyraAgent API
  *     with a read-only service token (env var named by `ayraBlogs.tokenEnv`; never stored here).
- *  2. Each **published** blog becomes a **draft** post (waiting for approval in the control
- *     room), written by the site's sync account (people still never write content). A person
+ *  2. Each draft or published blog becomes a **draft** post (waiting for approval in the control
+ *     room), written by the site's sync account (people still never write content). Empty or
+ *     tiny AyraAgent drafts (an "Untitled blog" stub) are skipped, and counted. A person
  *     approves it there (src/sync/approval.ts); only then do websites see it. A blog edited in
  *     AyraAgent after approval comes back as a draft. The body is cleaned for the public site: the
  *     internal "## Sources" list, the [^n] markers and placeholder images are removed; the cited
  *     sources are kept in an internal field the websites never see.
- *  3. A blog that is no longer published (archived, back to draft, gone) retires its post:
- *     hidden from websites, never deleted.
+ *  3. A blog that is archived or gone retires its post: hidden from websites, never deleted.
+ *     (Archiving in AyraAgent is how a blog is taken down.)
  *  4. A receipt is filed (only when something changed or went wrong), and the site's preview
  *     deploy hook is called when what websites see changed (a live post edited or retired). A
  *     person still promotes production.
@@ -105,6 +107,10 @@ const cut = (value: string | null | undefined, max: number) => {
   return s.length <= max ? s : `${s.slice(0, max - 1).trimEnd()}…`
 }
 
+/** A draft shorter than this is a stub, not a blog (AyraAgent's writer produces 900 words or more). */
+export const MIN_DRAFT_WORDS = 100
+const wordsOf = (text: string) => text.split(/\s+/).filter(Boolean).length
+
 export type BlogAuthor = { name?: string | null; jobTitle?: string | null; url?: string | null }
 
 /** One published AyraAgent blog as this CMS's post record. */
@@ -135,6 +141,8 @@ export function mapBlog(blog: AyraBlog, author: BlogAuthor): Record<string, unkn
 export type BlogAction = 'create' | 'update' | 'unchanged' | 'retire'
 export type BlogItem = { collection: 'posts'; recordId: string; sourcePath: string; sha256: string; action: BlogAction }
 export type SiteImport = {
+  /** Drafts too short to be a blog yet (stubs), left out. */
+  skipped: number
   site: string
   org: string
   ok: boolean
@@ -269,6 +277,8 @@ export type ImportOptions = {
   api?: (org: string, token: string) => BlogsApi
   /** A fixed source instead of AyraAgent (e.g. blogs from a file); needs no token. */
   source?: BlogsApi
+  /** Also import AyraAgent drafts (default true; set AYRA_BLOGS_PUBLISHED_ONLY=1 for published blogs only). */
+  includeDrafts?: boolean
   /** Retire posts whose blog is no longer published (default true; off for a partial source like a file). */
   retire?: boolean
   fetch?: typeof fetch
@@ -289,6 +299,7 @@ export async function runBlogImport(opts: ImportOptions): Promise<SiteImport[]> 
   const base = env.AYRA_AGENT_API_BASE || 'https://api.ayraagent.ai'
   const api = opts.api ?? ((org: string, token: string) => blogsApi({ base, token, org, fetch: opts.fetch }))
   const retire = opts.retire ?? !opts.source
+  const includeDrafts = opts.includeDrafts ?? env.AYRA_BLOGS_PUBLISHED_ONLY !== '1'
 
   const results: SiteImport[] = []
   for (const tenant of await store.tenants(opts.site)) results.push(await importSite(tenant))
@@ -297,7 +308,7 @@ export async function runBlogImport(opts: ImportOptions): Promise<SiteImport[]> 
   async function importSite(tenant: Tenant): Promise<SiteImport> {
     const startedAt = now()
     const org = String(tenant.ayraBlogs?.org)
-    const result: SiteImport = { site: tenant.slug, org, ok: false, dryRun: Boolean(opts.dryRun), items: [], counts: countOf([]), problems: [] }
+    const result: SiteImport = { skipped: 0, site: tenant.slug, org, ok: false, dryRun: Boolean(opts.dryRun), items: [], counts: countOf([]), problems: [] }
     const fail = (problem: string) => ((result.problems = [problem]), result)
 
     let source = opts.source
@@ -324,13 +335,17 @@ export async function runBlogImport(opts: ImportOptions): Promise<SiteImport[]> 
 
     const plan: { item: BlogItem; id?: number | string; data?: Record<string, unknown> }[] = []
     let hidesLive = false // an approved post is edited or retired: what websites see changes
-    const published = blogs.filter((b) => b.status === 'published')
+    const published = blogs.filter((b) => b.status === 'published' || (includeDrafts && b.status === 'draft'))
     if (published.length && !author.name) result.problems.push('no author: set ayraBlogs.author.name (a real person, for BlogPosting JSON-LD)')
     else {
       for (const summary of published) {
         const sourcePath = `ayra-blogs/${org}/${summary.id}`
         try {
           const blog = await source.get(summary.id)
+          if (blog.status === 'draft' && wordsOf(cleanBody(blog.body_markdown ?? '')) < MIN_DRAFT_WORDS) {
+            result.skipped += 1 // an empty or just-started draft is not a blog yet
+            continue
+          }
           const existing = byExternal.get(blog.id)
           const data = mapBlog(blog, author)
           if (existing) {
@@ -360,7 +375,7 @@ export async function runBlogImport(opts: ImportOptions): Promise<SiteImport[]> 
       }
     }
     if (retire) {
-      // Blogs no longer published (archived, back to draft, or gone) retire their posts.
+      // Blogs that are archived or gone retire their posts.
       const live = new Set(published.map((b) => b.id))
       for (const [externalId, post] of byExternal) {
         if (!live.has(externalId) && post.status !== 'retired') {

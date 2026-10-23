@@ -20,7 +20,7 @@ export async function POST(request: Request) {
     const line = (r: (typeof results)[number]) =>
       r.problems.length
         ? `${r.site}: ${r.problems[0]}`
-        : `${r.site}: ${r.counts.create} new · ${r.counts.update} updated · ${r.counts.retire} retired · ${r.counts.unchanged} unchanged`
+        : `${r.site}: ${r.counts.create} new · ${r.counts.update} updated · ${r.counts.retire} retired · ${r.counts.unchanged} unchanged${r.skipped ? ` · ${r.skipped} empty draft${r.skipped === 1 ? '' : 's'} skipped` : ''}`
     const text = results.map(line).join('  |  ')
     q.set('import', results.some((r) => r.problems.length) ? `problem: ${text}` : text)
   }

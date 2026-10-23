@@ -33,7 +33,7 @@ export function canApprove(user: Approver, tenantId: unknown): boolean {
 }
 
 type Review = { state?: string | null; revision?: string | null; previouslyApproved?: boolean | null }
-type BlogPost = PostDoc & { tenant: unknown; review?: Review | null; author?: { name?: string | null } | null }
+type BlogPost = PostDoc & { tenant: unknown; publishedAt?: string | null; review?: Review | null; author?: { name?: string | null } | null }
 
 export type Decided =
   | { ok: true; message: string; deployHook?: 'called' | 'failed' | 'not set' }
@@ -76,6 +76,8 @@ export async function decidePost(opts: {
         collection: 'posts', id: postId, overrideAccess: true, depth: 0,
         data: {
           status: 'approved',
+          // A draft that was never published in AyraAgent has no date; the day it is approved is its publish date.
+          ...(post.publishedAt ? {} : { publishedAt: now.toISOString() }),
           approved: { by: who, at: decidedAt, version: review.revision ?? undefined },
           review: { ...review, state: 'approved', decidedBy: who, decidedAt },
         } as never,

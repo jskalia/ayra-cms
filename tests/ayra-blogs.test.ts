@@ -33,6 +33,8 @@ const BODY = [
   '[^2]: **launch-plan.md** — marketing/work/widget · "draft excerpt"',
 ].join('\n')
 
+const LONG = BODY.replace('## Sources', `${'A sentence that makes this a real post. '.repeat(30)}\n\n## Sources`) // over the draft-stub limit
+
 const blog = (id: string, extra: Partial<AyraBlog> = {}): AyraBlog => ({
   id, org_id: 'demo-org', title: `Widget update ${id}`, slug: `widget-update-${id}`, status: 'published', summary: 'What changed in Widget.',
   revision: 1, published_at: '2026-10-21T10:00:00Z', body_markdown: BODY,
@@ -92,10 +94,11 @@ describe('preparing a blog for the public site', () => {
 describe('importing into a site', () => {
   it('a published blog arrives as a draft the website does not see, with its internal sources kept', async () => {
     store.set('b1', blog('b1'))
-    store.set('d1', blog('d1', { status: 'draft' })) // drafts are never imported
+    store.set('d1', blog('d1', { status: 'draft', body_markdown: 'Just started.' })) // an empty stub is not a blog yet
     const [r] = await run()
     expect(r.problems).toEqual([])
     expect(r.counts).toMatchObject({ create: 1, update: 0, retire: 0 })
+    expect(r.skipped).toBe(1)
     expect(r.receiptId).toBeTruthy()
     expect(r.deployHook).toBeUndefined() // a new draft changes nothing on the website
     expect(hooks).toEqual([])
@@ -156,6 +159,31 @@ describe('importing into a site', () => {
     expect(r.counts.update).toBe(1)
     expect(await post('readerA', 'post:widget-update-b1')).toBeUndefined()
     expect(await post('viewerA', 'post:widget-update-b1')).toMatchObject({ status: 'draft', review: { state: 'pending' } })
+  })
+  it('a real draft in AyraAgent is imported too, and the day it is approved is its publish date', async () => {
+    store.set('dr1', blog('dr1', { status: 'draft', published_at: null, body_markdown: LONG }))
+    const [r] = await run()
+    expect(r.problems).toEqual([])
+    expect(r.counts.create).toBe(1)
+    const p = (await post('viewerA', 'post:widget-update-dr1'))!
+    expect(p).toMatchObject({ status: 'draft', review: { state: 'pending' } })
+    expect(p.publishedAt).toBeFalsy()
+    const done = await decidePost({ payload: ctx.payload, user: ctx.users.viewerA as never, postId: p.id, decision: 'approve', env: {}, now: () => new Date('2026-10-23T09:00:00Z') })
+    expect(done).toMatchObject({ ok: true })
+    expect(String((await post('readerA', 'post:widget-update-dr1'))!.publishedAt)).toContain('2026-10-23')
+    // Editing the draft in AyraAgent sends it back for approval, as for any edit.
+    store.set('dr1', { ...store.get('dr1')!, revision: 2, body_markdown: LONG.replace('## Sources', 'More text.\n\n## Sources') })
+    await run()
+    expect(await post('readerA', 'post:widget-update-dr1')).toBeUndefined()
+    expect((await post('viewerA', 'post:widget-update-dr1'))!.review).toMatchObject({ state: 'pending', previouslyApproved: true })
+    store.delete('dr1')
+  })
+  it('with AYRA_BLOGS_PUBLISHED_ONLY=1, drafts are left in AyraAgent', async () => {
+    store.set('dr2', blog('dr2', { status: 'draft', body_markdown: LONG }))
+    const [r] = await run({ env: { ...env, AYRA_BLOGS_PUBLISHED_ONLY: '1' } })
+    expect(r.counts.create).toBe(0)
+    expect(await post('viewerA', 'post:widget-update-dr2')).toBeUndefined()
+    store.delete('dr2')
   })
   it('a dry run writes nothing', async () => {
     store.set('b2', blog('b2'))
