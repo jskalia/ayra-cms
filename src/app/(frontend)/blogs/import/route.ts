@@ -14,7 +14,8 @@ export async function POST(request: Request) {
   })
   const q = new URLSearchParams()
   if (site) q.set('site', site)
-  const problem = results.flatMap((r) => r.problems)[0]
+  // Name the site, so a setup problem on one of several sites can be found.
+  const problem = results.flatMap((r) => r.problems.map((p) => `${r.site}: ${p}`))[0]
   if (!results.length) q.set('import', 'not-configured')
   else if (problem) q.set('import', `problem: ${problem}`)
   else {
